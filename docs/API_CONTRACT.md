@@ -40,7 +40,7 @@ Errors: 404 unknown code, 422 invalid parameters (rounds 1..12, p in (0,0.5)).
 
 ## GET /api/v1/benchmarks
 ```json
-{ "machine": "AMD Ryzen 5 5600G ...",
+{ "machine": "a desktop processor with AVX2 ...",
   "runs": {
     "final_int": { "label":"Interleaved (depth 7)", "schedule":"interleaved", "rounds":6,
       "threshold":{"estimate":0.0056,"crossings":[...],"pseudo_thresholds":{"BB72":0.0014,"BB90":0.0021,...}},

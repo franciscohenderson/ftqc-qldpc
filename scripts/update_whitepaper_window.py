@@ -69,7 +69,7 @@ A window needs at least one round of look-ahead ($F < W$) unless a single window
 
 sec85 = f'''### 8.5 Sliding-Window $(W, F)$ Decoding vs. Full Horizon (`results/window`, `scripts/bench_window.py`)
 
-All decoders were run on exactly the same Stim samples (interleaved depth-7 schedule, 6 rounds, seed 2026, BP30 + OSD-CS32 `int16` core, AMD Ryzen 5 5600G). Tables 8 to 11 give the logical error rate and the latencies; the values are those of `docs/FACTS.md`.
+All decoders were run on exactly the same Stim samples (interleaved depth-7 schedule, 6 rounds, seed 2026, BP30 + OSD-CS32 `int16` core, a desktop processor with AVX2). Tables 8 to 11 give the logical error rate and the latencies; the values are those of `docs/FACTS.md`.
 
 {table("BB72", 2e-3, 8)}
 {table("BB144", 2e-3, 9)}
