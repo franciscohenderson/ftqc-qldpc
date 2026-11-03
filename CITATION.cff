@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "ftqc-qldpc: decoder, syndrome-extraction compiler and live console for bivariate bicycle qLDPC codes"
+type: software
+version: 0.1.0
+license: Apache-2.0
+repository-code: "https://github.com/franciscohenderson/ftqc-qldpc"
+authors:
+  - family-names: Henderson
+    given-names: Francisco
+abstract: "Open-source research prototype: exact MILP code distances, a depth-7 interleaved CNOT schedule, a C++20 AVX2 BP + OSD decoder with a sliding-window variant, and OpenQASM 3.0 output. All results are simulations."

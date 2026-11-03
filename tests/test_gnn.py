@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import numpy as np
-import torch
+import pytest
+
+torch = pytest.importorskip("torch")  # optional extra: pip install torch
 
 from algebra.qldpc import hypergraph_product, repetition_check
 from decoder.gnn import (

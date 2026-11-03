@@ -1,4 +1,4 @@
-﻿<h1 align="center">FTQC · qLDPC</h1>
+<h1 align="center">FTQC · qLDPC</h1>
 <p align="center"><b>Decoder, syndrome-extraction compiler and live console for bivariate-bicycle quantum LDPC codes.</b><br>
 Exact code distances, a depth-7 interleaved CNOT schedule, a C++20 AVX2 SIMD BP + OSD decoder, a sliding-window stream decoder, and a one-screen live console.</p>
 
@@ -41,12 +41,24 @@ One screen, no tabs, no CDN: a string-art Tanner graph (each nail is a qubit, ea
 git clone https://github.com/franciscohenderson/ftqc-qldpc ; cd ftqc-qldpc
 scripts\setup.ps1                  # venv (Python 3.12+), dependencies, builds the C++20 decoder, runs the tests
 scripts\launch_dashboard.ps1       # API + live console at http://localhost:8000   (/docs for the OpenAPI UI)
-$env:PYTHONPATH="src"; .\.venv\Scripts\python.exe -m pytest -q          # 62 tests
+$env:PYTHONPATH="src"; .\.venv\Scripts\python.exe -m pytest -q          # 62 tests (61 + 1 skipped if the optional torch extra is missing)
 .\.venv\Scripts\python.exe scripts\bench_window.py                    # sliding-window study
 .\.venv\Scripts\python.exe scripts\build_pdf.py                       # docs/WHITEPAPER.pdf (needs Node and Chrome/Edge)
 ```
 
-The C++ kernel is compiled with `zig c++` (`pip install ziglang`) or `clang++`; no Rust toolchain is needed. `docs/assets/` is produced by `node scripts/capture_assets.mjs`.
+The C++ kernel is compiled with `zig c++` (`pip install ziglang`) or `clang++`; no Rust toolchain is needed.
+
+**Linux / macOS (x86-64 with AVX2), not yet tested by the author:** the loader and build helper already handle `.so`, only the helper scripts are PowerShell. The equivalent is
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install -e ".[build]" && pip install torch --index-url https://download.pytorch.org/whl/cpu
+PYTHONPATH=src python -c "from decoder.fast import build; build(force=True)"
+PYTHONPATH=src python -m pytest -q
+PYTHONPATH=src python -m uvicorn api.server:app --app-dir src --port 8000   # live console at http://localhost:8000
+```
+
+The fast tier needs AVX2, so Apple Silicon (ARM) is not supported yet. Reports from other platforms are welcome as issues. `docs/assets/` is produced by `node scripts/capture_assets.mjs`.
 
 ## Architecture
 
@@ -69,7 +81,7 @@ flowchart LR
 
 * Sub-microsecond latency is the BP kernel only (amortized, per-round matrix). Full circuit-level BP + OSD is hundreds of microseconds to milliseconds.
 * The sliding-window decoder is orchestrated in Python around the C++ kernel and was measured with three configurations on BB72 and BB144; windows much shorter than the code distance lose accuracy (BB144 at p = 3e-3: about 1.9x the full-horizon error rate for W = 3).
-* One machine (AVX2, no AVX-512), 6 syndrome rounds, uniform depolarizing noise; BB288 distance is not certified; no hardware-in-the-loop run. The commercial and outreach documents are drafts: pricing and market statements are hypotheses.
+* One machine (AVX2, no AVX-512), 6 syndrome rounds, uniform depolarizing noise; BB288 distance is not certified; no hardware-in-the-loop run.
 
 
 ## License
