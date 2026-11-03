@@ -48,8 +48,15 @@ def distance_block() -> tuple[str, dict]:
         if d is not None:
             if d.get("proved_no_fault_up_to") is not None:
                 hi = ent["d_upper"]
-                t.append(f"Asking only whether a fault of weight $\\le {d['max_weight']}$ exists, the solver proved there is none within {d['seconds']:.0f} s, so $d_\\mathrm{{circ}} \\ge {d['d_lower']}$ for the "
-                         f"interleaved schedule" + (f", which together with the weight-{hi} witness gives exactly {hi}." if d['d_lower'] == hi else "."))
+                if d.get("method") == "forced_sweep":
+                    t.append(f"A direct decision query (is there an undetected logical fault of weight $\\le {d['max_weight']}$?) did not terminate in 1500 s. We therefore split it into a covering sweep (`scripts/run_forced_sweep.py`): "
+                             f"subproblem $j$ forces mechanism $j$ into the fault and excludes every mechanism with a smaller index, so a fault of weight $\\le {d['max_weight']}$, if one existed, would be found in exactly one subproblem (the one of its smallest index). "
+                             f"Forcing one mechanism makes each subproblem easy (seconds). All {d['n_mechanisms']} subproblems were infeasible and none was unresolved ({d['seconds']:.0f} s on 6 workers), so there is no such fault and $d_\\mathrm{{circ}} \\ge {d['d_lower']}$ for the interleaved schedule"
+                             + (f"; together with the verified weight-{hi} witness this gives $d_\\mathrm{{circ}} = {hi}$ exactly. " if d['d_lower'] == hi else ". ")
+                             + "The method was validated on the sequential schedule (known weight 4: feasible at $W = 4$, infeasible at $W = 3$) and on the interleaved weight-5 witness (feasible at 5, infeasible at 4); `scripts/validate_sweep.py`.")
+                else:
+                    t.append(f"Asking only whether a fault of weight $\\le {d['max_weight']}$ exists, the solver proved there is none within {d['seconds']:.0f} s, so $d_\\mathrm{{circ}} \\ge {d['d_lower']}$ for the "
+                             f"interleaved schedule" + (f", which together with the weight-{hi} witness gives exactly {hi}." if d['d_lower'] == hi else "."))
             elif d.get("d_upper") is not None:
                 t.append(f"Asking only whether a fault of weight $\\le {d['max_weight']}$ exists, the solver found one of weight {d['d_upper']}.")
             else:
@@ -141,7 +148,8 @@ def main():
     ent, seq, dec = info["ent"], info["seq"], info["dec"]
     lim = ("6. **Circuit-Level (Effective) Distance Only Partly Resolved:** Section 9A.1 computes it for BB72 with 6 rounds, one noise model and the $Z$ basis only"
            + (f": $d_\\mathrm{{circ}} = {seq['d_lower']}$ (certified) for the sequential schedule, and bounds $[{ent['d_lower']}, {ent['d_upper']}]$ for the interleaved one"
-              + (f" tightened by a decision query to $\\ge {dec['d_lower']}$" if dec and dec.get("proved_no_fault_up_to") is not None else "") if seq and ent else "")
+              + ((f", tightened by the covering sweep to $\\ge {dec['d_lower']}$, hence exactly ${ent['d_upper']}$" if dec['d_lower'] == ent['d_upper'] else f", tightened by the covering sweep to $\\ge {dec['d_lower']}$")
+                 if dec and dec.get("proved_no_fault_up_to") is not None else "") if seq and ent else "")
            + ". The $X$ basis, longer horizons and the larger codes are not resolved within the solver time limits, so whether the depth-7 schedule preserves the circuit distance of the larger codes is **not established**.")
     s = re.sub(r"6\. \*\*Circuit-Level \(Effective\) Distance[^\n]*", lambda m: lim, s, count=1)
     p.write_text(s, encoding="utf-8")

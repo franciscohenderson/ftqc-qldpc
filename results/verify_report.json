@@ -5,7 +5,7 @@
   {
    "name": "manifest",
    "status": "PASS",
-   "seconds": 0.2,
+   "seconds": 0.0,
    "detail": "4 files match their SHA-256 and the .sv equals a fresh generator run"
   },
   {
@@ -17,7 +17,7 @@
   {
    "name": "gates",
    "status": "PASS",
-   "seconds": 3.8,
+   "seconds": 1.9,
    "detail": "6 translations of BB72 as logical gates, inside the 7-layer circuit: 0 violations"
   }
  ],
