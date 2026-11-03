@@ -1,6 +1,6 @@
 # Sub-Microsecond SIMD Decoding and Depth-7 Interleaved Syndrome Extraction for Bivariate Bicycle qLDPC Codes
 
-**Authors:** [to be filled]
+**Authors:** Francisco. Code and data: https://github.com/franciscohenderson/ftqc-qldpc
 
 ## Abstract
 

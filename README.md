@@ -36,7 +36,7 @@ One screen, no tabs, no CDN: a string-art Tanner graph (each nail is a qubit, ea
 ## Quickstart
 
 ```powershell
-git clone <this repo> ; cd ftqc-qldpc
+git clone https://github.com/franciscohenderson/ftqc-qldpc ; cd ftqc-qldpc
 scripts\setup.ps1                  # venv (Python 3.12+), dependencies, builds the C++20 decoder, runs the tests
 scripts\launch_dashboard.ps1       # API + live console at http://localhost:8000   (/docs for the OpenAPI UI)
 $env:PYTHONPATH="src"; .\.venv\Scripts\python.exe -m pytest -q          # 62 tests

@@ -25,3 +25,6 @@ docs/COMMERCIAL_PITCH.md
 
 # pre-audit backup of the window benchmark (superseded)
 results/window/results.before-audit.json
+
+# local release bundles (emails, application answers, attachments)
+dist/
