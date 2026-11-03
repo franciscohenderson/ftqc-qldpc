@@ -305,6 +305,7 @@ d_circ = fewest DEM mechanisms with zero detector syndrome that flip a logical o
 | BB144 | Z | 12 | 6 | - | 2 | 32 | False | 300 | 300.0 |
 | BB144 | Z | 7 | 6 | - | 2 | 14 | False | 301 | 300.0 |
 | BB72 | Z | 12 | 6 | - | 4 | 4 | True | 233 | 900.0 |
+| BB72 | X | 12 | 6 | - | 4 | 4 | True | 153 | 600.0 |
 | BB72 | Z | 7 | 6 | - | 3 | 5 | False | 900 | 900.0 |
 | BB72 | X | 7 | 6 | - | 4 | 5 | False | 900 | 900.0 |
 | BB72 | Z | 7 | 6 | 4 | 5 | - | False | 3903 | 300 |

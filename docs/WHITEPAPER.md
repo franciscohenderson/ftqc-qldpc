@@ -494,6 +494,7 @@ The circuit-level distance $d_\mathrm{circ}$ is the smallest number of mechanism
 | BB144 | Z | 12 | - | 2 | 32 | no | 300 | 300 |
 | BB144 | Z | 7 | - | 2 | 14 | no | 301 | 300 |
 | BB72 | Z | 12 | - | 4 | 4 | yes | 233 | 900 |
+| BB72 | X | 12 | - | 4 | 4 | yes | 153 | 600 |
 | BB72 | Z | 7 | - | 3 | 5 | no | 900 | 900 |
 | BB72 | X | 7 | - | 4 | 5 | no | 900 | 900 |
 | BB72 | Z | 7 | 4 | 5 | - | no | 3903 | 300 |
@@ -506,6 +507,7 @@ The circuit-level distance $d_\mathrm{circ}$ is the smallest number of mechanism
 For BB72 (code distance 6) the sequential 12-layer schedule has $d_\mathrm{circ} = 4$, **certified** by HiGHS in 233 s: hook-type faults propagating through the CNOT chains reduce the effective distance below the code distance. For the interleaved 7-layer schedule the solver could only bound $d_\mathrm{circ}$ in $[3, 5]$ within 900 s, with a verified undetected logical fault of weight 5.
 A direct decision query (is there an undetected logical fault of weight $\le 4$?) did not terminate in 1500 s. We therefore split it into a covering sweep (`scripts/run_forced_sweep.py`): subproblem $j$ forces mechanism $j$ into the fault and excludes every mechanism with a smaller index, so a fault of weight $\le 4$, if one existed, would be found in exactly one subproblem (the one of its smallest index). Forcing one mechanism makes each subproblem easy (seconds). All 2232 subproblems were infeasible and none was unresolved (3903 s on 6 workers), so there is no such fault and $d_\mathrm{circ} \ge 5$ for the interleaved schedule; together with the verified weight-5 witness this gives $d_\mathrm{circ} = 5$ exactly. The method was validated on the sequential schedule (known weight 4: feasible at $W = 4$, infeasible at $W = 3$) and on the interleaved weight-5 witness (feasible at 5, infeasible at 4); `scripts/validate_sweep.py`.
 The same covering sweep in the $X$ basis (4149 s) also proves that no undetected logical fault of weight $\le 4$ exists, and the direct solver found a verified fault of weight 5, so $d_\mathrm{circ} = 5$ exactly in both bases for the interleaved schedule.
+For the sequential schedule the $X$ basis gives $d_\mathrm{circ} = 4$ as well (certified by HiGHS in 153 s). In summary, for BB72 with 6 rounds and this noise model, in both bases the 12-layer schedule has $d_\mathrm{circ} = 4$ and the 7-layer schedule has $d_\mathrm{circ} = 5$.
 This is a measurement of two schedules on one code and one noise model; it does not show that the interleaved schedule preserves or loses distance relative to the sequential one unless the bounds above separate. For BB90, BB108 and BB144 the time-limited bounds are wide (see the table) and carry no conclusion; with only 6 rounds the time-like distance also limits $d_\mathrm{circ}$ below the code distance of the larger codes.
 
 ### 9A.2 Zero-Cost Logical Gates from Translation Automorphisms

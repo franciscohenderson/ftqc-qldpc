@@ -66,6 +66,10 @@ def distance_block() -> tuple[str, dict]:
         if xe and xd and xd.get("proved_no_fault_up_to") is not None:
             t.append(f"The same covering sweep in the $X$ basis ({xd['seconds']:.0f} s) also proves that no undetected logical fault of weight $\\le {xd['max_weight']}$ exists, and the direct solver found a verified fault of weight {xe['d_upper']}, "
                      + (f"so $d_\\mathrm{{circ}} = {xe['d_upper']}$ exactly in both bases for the interleaved schedule." if xd['d_lower'] == xe['d_upper'] else f"so $d_\\mathrm{{circ}} \\in [{xd['d_lower']}, {xe['d_upper']}]$ in the $X$ basis."))
+        sx = next((r for r in runs if r["code"] == "BB72" and r["schedule"] == "sequential" and r["rounds"] == 6 and r.get("basis") == "X"), None)
+        if sx and sx.get("certified"):
+            t.append(f"For the sequential schedule the $X$ basis gives $d_\\mathrm{{circ}} = {sx['d_lower']}$ as well (certified by HiGHS in {sx['seconds']:.0f} s). "
+                     "In summary, for BB72 with 6 rounds and this noise model, in both bases the 12-layer schedule has $d_\\mathrm{circ} = 4$ and the 7-layer schedule has $d_\\mathrm{circ} = 5$.")
         t.append("This is a measurement of two schedules on one code and one noise model; it does not show that the interleaved schedule preserves or loses distance relative to the sequential one unless the bounds above separate. "
                  "For BB90, BB108 and BB144 the time-limited bounds are wide (see the table) and carry no conclusion; with only 6 rounds the time-like distance also limits $d_\\mathrm{circ}$ below the code distance of the larger codes.")
     return "\n".join(t) + "\n", info
