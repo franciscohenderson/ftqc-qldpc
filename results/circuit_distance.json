@@ -296,6 +296,41 @@
    "basis": "Z",
    "distance_code": 12,
    "wall_seconds": 300.1343007000396
+  },
+  {
+   "max_weight": null,
+   "n_mechanisms": 2232,
+   "n_detectors": 252,
+   "n_observables": 12,
+   "seconds": 900.1708967000013,
+   "time_limit": 900.0,
+   "status": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+   "d_upper": 5,
+   "witness": [
+    2155,
+    2158,
+    2203,
+    2205,
+    2206
+   ],
+   "witness_observables": [
+    0,
+    4,
+    6,
+    7,
+    9,
+    10,
+    11
+   ],
+   "d_lower": 4,
+   "certified": false,
+   "code": "BB72",
+   "schedule": "interleaved",
+   "cnot_layers": 7,
+   "rounds": 6,
+   "basis": "X",
+   "distance_code": 6,
+   "wall_seconds": 900.1738717000699
   }
  ]
 }

@@ -37,9 +37,9 @@ def distance_block() -> tuple[str, dict]:
          "Mechanisms with identical symptoms are merged (this cannot change the minimum), undetectable mechanisms are kept, and every witness is re-checked over "
          "$\\mathbb{F}_2$. The formulation is validated on a repetition code and a rotated surface code of known distance (`tests/test_circuit_distance.py`). "
          "Memory experiments use 6 rounds, $Z$ basis and uniform noise $p = 10^{-3}$.", "",
-         "| code | CNOT layers | max weight asked | $d_\\mathrm{circ}$ lower | $d_\\mathrm{circ}$ upper | certified | MILP seconds | time limit (s) |", "|---|---|---|---|---|---|---|---|"]
+         "| code | basis | CNOT layers | max weight asked | $d_\\mathrm{circ}$ lower | $d_\\mathrm{circ}$ upper | certified | MILP seconds | time limit (s) |", "|---|---|---|---|---|---|---|---|---|"]
     for r in sorted(runs + dec, key=lambda r: (r["code"], -r["cnot_layers"], r.get("max_weight") or 0)):
-        t.append(f"| {r['code']} | {r['cnot_layers']} | {r.get('max_weight') or '-'} | {r.get('d_lower') or '-'} | {r.get('d_upper') or '-'} | {'yes' if r.get('certified') else 'no'} | {r['seconds']:.0f} | {r.get('time_limit'):.0f} |")
+        t.append(f"| {r['code']} | {r.get('basis', 'Z')} | {r['cnot_layers']} | {r.get('max_weight') or '-'} | {r.get('d_lower') or '-'} | {r.get('d_upper') or '-'} | {'yes' if r.get('certified') else 'no'} | {r['seconds']:.0f} | {r.get('time_limit'):.0f} |")
     t += ["", "*Table 9A.1: Circuit-level distance bounds (from `results/circuit_distance*.json`).*", ""]
     if seq and ent:
         t.append(f"For BB72 (code distance 6) the sequential {seq['cnot_layers']}-layer schedule has $d_\\mathrm{{circ}} = {seq['d_lower']}$, **certified** by HiGHS in {seq['seconds']:.0f} s: "
@@ -61,6 +61,11 @@ def distance_block() -> tuple[str, dict]:
                 t.append(f"Asking only whether a fault of weight $\\le {d['max_weight']}$ exists, the solver found one of weight {d['d_upper']}.")
             else:
                 t.append(f"Asking only whether a fault of weight $\\le {d['max_weight']}$ exists did not terminate within {d['time_limit']:.0f} s.")
+        xe = next((r for r in runs if r["code"] == "BB72" and r["schedule"] == "interleaved" and r["rounds"] == 6 and r.get("basis") == "X"), None)
+        xd = next((r for r in dec if r["code"] == "BB72" and r["schedule"] == "interleaved" and r.get("basis") == "X"), None)
+        if xe and xd and xd.get("proved_no_fault_up_to") is not None:
+            t.append(f"The same covering sweep in the $X$ basis ({xd['seconds']:.0f} s) also proves that no undetected logical fault of weight $\\le {xd['max_weight']}$ exists, and the direct solver found a verified fault of weight {xe['d_upper']}, "
+                     + (f"so $d_\\mathrm{{circ}} = {xe['d_upper']}$ exactly in both bases for the interleaved schedule." if xd['d_lower'] == xe['d_upper'] else f"so $d_\\mathrm{{circ}} \\in [{xd['d_lower']}, {xe['d_upper']}]$ in the $X$ basis."))
         t.append("This is a measurement of two schedules on one code and one noise model; it does not show that the interleaved schedule preserves or loses distance relative to the sequential one unless the bounds above separate. "
                  "For BB90, BB108 and BB144 the time-limited bounds are wide (see the table) and carry no conclusion; with only 6 rounds the time-like distance also limits $d_\\mathrm{circ}$ below the code distance of the larger codes.")
     return "\n".join(t) + "\n", info
@@ -146,11 +151,11 @@ def main():
         s = s.replace(a, section + "\n---\n\n" + a, 1)
     # Limitation 6 used to say the circuit-level distance was not analysed
     ent, seq, dec = info["ent"], info["seq"], info["dec"]
-    lim = ("6. **Circuit-Level (Effective) Distance Only Partly Resolved:** Section 9A.1 computes it for BB72 with 6 rounds, one noise model and the $Z$ basis only"
+    lim = ("6. **Circuit-Level (Effective) Distance Only Partly Resolved:** Section 9A.1 computes it for BB72 with 6 rounds and one noise model, in the $Z$ and $X$ bases for the interleaved schedule and in $Z$ only for the sequential one"
            + (f": $d_\\mathrm{{circ}} = {seq['d_lower']}$ (certified) for the sequential schedule, and bounds $[{ent['d_lower']}, {ent['d_upper']}]$ for the interleaved one"
               + ((f", tightened by the covering sweep to $\\ge {dec['d_lower']}$, hence exactly ${ent['d_upper']}$" if dec['d_lower'] == ent['d_upper'] else f", tightened by the covering sweep to $\\ge {dec['d_lower']}$")
                  if dec and dec.get("proved_no_fault_up_to") is not None else "") if seq and ent else "")
-           + ". The $X$ basis, longer horizons and the larger codes are not resolved within the solver time limits, so whether the depth-7 schedule preserves the circuit distance of the larger codes is **not established**.")
+           + ". Longer horizons and the larger codes are not resolved within the solver time limits, so whether the depth-7 schedule preserves the circuit distance of the larger codes is **not established**.")
     s = re.sub(r"6\. \*\*Circuit-Level \(Effective\) Distance[^\n]*", lambda m: lim, s, count=1)
     p.write_text(s, encoding="utf-8")
     print("updated", p)

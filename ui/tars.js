@@ -340,7 +340,7 @@
     const runs = h.circuit_distance.filter(r => r.code === "BB72" && r.rounds === 6 && r.basis === "Z");
     const seq = runs.find(r => r.schedule === "sequential"), ent = runs.find(r => r.schedule === "interleaved");
     if (!seq || !ent) { $("#d-t").textContent = "Todavía no hay mediciones guardadas de la distancia de circuito."; return; }
-    const dc = seq.distance_code, dec = (h.circuit_distance_decision || []).find(r => r.code === "BB72" && r.schedule === "interleaved");
+    const dc = seq.distance_code, dec = (h.circuit_distance_decision || []).find(r => r.code === "BB72" && r.schedule === "interleaved" && r.basis !== "X");
     let t = `BB72 tiene distancia ${dc} como código. Con ruido en cada puerta del circuito real, 6 rondas, la distancia efectiva es menor: con ${seq.cnot_layers} capas de CNOT vale <b>${seq.d_lower}</b>, demostrado por el solver en ${loc(Math.round(seq.seconds))} s. Con ${ent.cnot_layers} capas el solver la acotó entre <b>${ent.d_lower}</b> y <b>${ent.d_upper}</b>, y no pudo cerrarla en ${loc(ent.time_limit)} s.`;
     let lo = ent.d_lower, hi = ent.d_upper;
     if (dec) {
@@ -348,6 +348,8 @@
       else if (dec.d_upper != null) { hi = Math.min(hi, dec.d_upper); t += ` Preguntando solo si existe una falla de peso ${dec.max_weight} o menos, halló una de peso ${dec.d_upper}.`; }
       else t += ` Preguntarle solo si existe una falla de peso ${dec.max_weight} o menos tampoco terminó en ${loc(dec.time_limit)} s.`;
     }
+    const xe = h.circuit_distance.find(r => r.code === "BB72" && r.schedule === "interleaved" && r.rounds === 6 && r.basis === "X"), xd = (h.circuit_distance_decision || []).find(r => r.code === "BB72" && r.schedule === "interleaved" && r.basis === "X");
+    if (xe && xd && xd.proved_no_fault_up_to != null && xd.d_lower === xe.d_upper) t += ` En la base X pasa lo mismo: también es <b>exactamente ${xe.d_upper}</b>.`;
     $("#d-t").innerHTML = t;
     $("#d-n").innerHTML = "Una falla de peso <b>w</b> son w errores físicos del circuito que ningún detector ve y que, juntos, dan vuelta un qubit lógico. La distancia de circuito es el menor w posible. Cuenta los errores que se propagan por las puertas, que la distancia del código no ve. Una cota sin certificar es lo que hay, no una conclusión.";
     const svg = $("#d-plot"); svg.innerHTML = ""; const W = 700, M = {l: 120, r: 24}, top = 40, dmax = Math.max(dc, hi, seq.d_upper) + 1, X = d => M.l + d / dmax * (W - M.l - M.r);

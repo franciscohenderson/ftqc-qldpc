@@ -17,11 +17,11 @@ def _distance() -> list[str]:
            "d_circ = fewest DEM mechanisms with zero detector syndrome that flip a logical observable (Z-basis memory, uniform noise 1e-3, "
            "identical symptoms merged). `certified` means HiGHS proved lower = upper within the time limit; otherwise the row is a bound, not a value. "
            "`max weight asked` marks a decision problem (is there an undetected logical fault of weight <= W?).", "",
-           "| code | layers | rounds | max weight asked | d_circ lower | d_circ upper | certified | seconds | time limit s |",
-           "|---|---|---|---|---|---|---|---|---|"]
+           "| code | basis | layers | rounds | max weight asked | d_circ lower | d_circ upper | certified | seconds | time limit s |",
+           "|---|---|---|---|---|---|---|---|---|---|"]
     runs = (_load("circuit_distance.json") or {"runs": []})["runs"] + (_load("circuit_distance_decision.json") or {"runs": []})["runs"]
     for r in sorted(runs, key=lambda r: (r["code"], -r["cnot_layers"], r.get("max_weight") or 0)):
-        out.append(f"| {r['code']} | {r['cnot_layers']} | {r['rounds']} | {r.get('max_weight') or '-'} | {r.get('d_lower') or '-'} | {r.get('d_upper') or '-'} | "
+        out.append(f"| {r['code']} | {r.get('basis', 'Z')} | {r['cnot_layers']} | {r['rounds']} | {r.get('max_weight') or '-'} | {r.get('d_lower') or '-'} | {r.get('d_upper') or '-'} | "
                    f"{r.get('certified')} | {r['seconds']:.0f} | {r.get('time_limit')} |")
     return out + [""]
 

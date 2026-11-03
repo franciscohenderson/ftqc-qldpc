@@ -77,11 +77,14 @@ def main():
     ap.add_argument("--task-limit", type=float, default=300.0)
     a = ap.parse_args()
     args = (a.code, a.schedule, a.rounds, a.basis, a.weight)
-    out_path = ROOT / "results" / f"forced_sweep_{a.code}_{a.schedule}_r{a.rounds}_w{a.weight}.json"
+    out_path = ROOT / "results" / f"forced_sweep_{a.code}_{a.schedule}_{a.basis}_r{a.rounds}_w{a.weight}.json"
     info = _build(*args)
     m = info["m"]
     data = json.loads(out_path.read_text()) if out_path.exists() else {"code": a.code, "schedule": a.schedule, "rounds": a.rounds, "basis": a.basis,
                                                                          "max_weight": a.weight, "mechanisms": m, "done": {}}
+    for k, v in (("code", a.code), ("schedule", a.schedule), ("rounds", a.rounds), ("basis", a.basis), ("max_weight", a.weight), ("mechanisms", m)):
+        if data[k] != v:                                  # never resume from a file that belongs to a different problem
+            raise SystemExit(f"progress file mismatch on {k}: {data[k]!r} != {v!r}")
     if info["undetectable"]:
         print("an undetectable logical mechanism exists: d_circ = 1"); return
     todo = [j for j in range(m) if str(j) not in data["done"] or data["done"][str(j)]["status"] not in (2, 0)]

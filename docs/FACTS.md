@@ -298,17 +298,19 @@ Shots left with a nonzero residual syndrome / shots where some window failed: W2
 
 d_circ = fewest DEM mechanisms with zero detector syndrome that flip a logical observable (Z-basis memory, uniform noise 1e-3, identical symptoms merged). `certified` means HiGHS proved lower = upper within the time limit; otherwise the row is a bound, not a value. `max weight asked` marks a decision problem (is there an undetected logical fault of weight <= W?).
 
-| code | layers | rounds | max weight asked | d_circ lower | d_circ upper | certified | seconds | time limit s |
-|---|---|---|---|---|---|---|---|---|
-| BB108 | 12 | 6 | - | 2 | 14 | False | 300 | 300.0 |
-| BB108 | 7 | 6 | - | 2 | 132 | False | 300 | 300.0 |
-| BB144 | 12 | 6 | - | 2 | 32 | False | 300 | 300.0 |
-| BB144 | 7 | 6 | - | 2 | 14 | False | 301 | 300.0 |
-| BB72 | 12 | 6 | - | 4 | 4 | True | 233 | 900.0 |
-| BB72 | 7 | 6 | - | 3 | 5 | False | 900 | 900.0 |
-| BB72 | 7 | 6 | 4 | 5 | - | False | 3903 | 300 |
-| BB90 | 12 | 6 | - | 2 | 9 | False | 300 | 300.0 |
-| BB90 | 7 | 6 | - | 2 | 12 | False | 300 | 300.0 |
+| code | basis | layers | rounds | max weight asked | d_circ lower | d_circ upper | certified | seconds | time limit s |
+|---|---|---|---|---|---|---|---|---|---|
+| BB108 | Z | 12 | 6 | - | 2 | 14 | False | 300 | 300.0 |
+| BB108 | Z | 7 | 6 | - | 2 | 132 | False | 300 | 300.0 |
+| BB144 | Z | 12 | 6 | - | 2 | 32 | False | 300 | 300.0 |
+| BB144 | Z | 7 | 6 | - | 2 | 14 | False | 301 | 300.0 |
+| BB72 | Z | 12 | 6 | - | 4 | 4 | True | 233 | 900.0 |
+| BB72 | Z | 7 | 6 | - | 3 | 5 | False | 900 | 900.0 |
+| BB72 | X | 7 | 6 | - | 4 | 5 | False | 900 | 900.0 |
+| BB72 | Z | 7 | 6 | 4 | 5 | - | False | 3903 | 300 |
+| BB72 | X | 7 | 6 | 4 | 5 | - | False | 4149 | 300 |
+| BB90 | Z | 12 | 6 | - | 2 | 9 | False | 300 | 300.0 |
+| BB90 | Z | 7 | 6 | - | 2 | 12 | False | 300 | 300.0 |
 
 ## Zero-cost logical gates from translation automorphisms (scripts/run_logical_gates.py)
 

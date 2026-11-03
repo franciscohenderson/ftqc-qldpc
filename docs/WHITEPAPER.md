@@ -487,22 +487,25 @@ This section collects four measurements made after the main study; each is repro
 
 The circuit-level distance $d_\mathrm{circ}$ is the smallest number of mechanisms of the detector error model (DEM) that raise no detector and still flip a logical observable. We compute it with the same HiGHS machinery as the code distances (`src/algebra/circuit_distance.py`): minimise $\sum_j e_j$ subject to $H_\mathrm{dem} e \equiv 0$ and $O_\mathrm{dem} e \not\equiv 0 \pmod 2$, with integer slack variables for the parities. Mechanisms with identical symptoms are merged (this cannot change the minimum), undetectable mechanisms are kept, and every witness is re-checked over $\mathbb{F}_2$. The formulation is validated on a repetition code and a rotated surface code of known distance (`tests/test_circuit_distance.py`). Memory experiments use 6 rounds, $Z$ basis and uniform noise $p = 10^{-3}$.
 
-| code | CNOT layers | max weight asked | $d_\mathrm{circ}$ lower | $d_\mathrm{circ}$ upper | certified | MILP seconds | time limit (s) |
-|---|---|---|---|---|---|---|---|
-| BB108 | 12 | - | 2 | 14 | no | 300 | 300 |
-| BB108 | 7 | - | 2 | 132 | no | 300 | 300 |
-| BB144 | 12 | - | 2 | 32 | no | 300 | 300 |
-| BB144 | 7 | - | 2 | 14 | no | 301 | 300 |
-| BB72 | 12 | - | 4 | 4 | yes | 233 | 900 |
-| BB72 | 7 | - | 3 | 5 | no | 900 | 900 |
-| BB72 | 7 | 4 | 5 | - | no | 3903 | 300 |
-| BB90 | 12 | - | 2 | 9 | no | 300 | 300 |
-| BB90 | 7 | - | 2 | 12 | no | 300 | 300 |
+| code | basis | CNOT layers | max weight asked | $d_\mathrm{circ}$ lower | $d_\mathrm{circ}$ upper | certified | MILP seconds | time limit (s) |
+|---|---|---|---|---|---|---|---|---|
+| BB108 | Z | 12 | - | 2 | 14 | no | 300 | 300 |
+| BB108 | Z | 7 | - | 2 | 132 | no | 300 | 300 |
+| BB144 | Z | 12 | - | 2 | 32 | no | 300 | 300 |
+| BB144 | Z | 7 | - | 2 | 14 | no | 301 | 300 |
+| BB72 | Z | 12 | - | 4 | 4 | yes | 233 | 900 |
+| BB72 | Z | 7 | - | 3 | 5 | no | 900 | 900 |
+| BB72 | X | 7 | - | 4 | 5 | no | 900 | 900 |
+| BB72 | Z | 7 | 4 | 5 | - | no | 3903 | 300 |
+| BB72 | X | 7 | 4 | 5 | - | no | 4149 | 300 |
+| BB90 | Z | 12 | - | 2 | 9 | no | 300 | 300 |
+| BB90 | Z | 7 | - | 2 | 12 | no | 300 | 300 |
 
 *Table 9A.1: Circuit-level distance bounds (from `results/circuit_distance*.json`).*
 
 For BB72 (code distance 6) the sequential 12-layer schedule has $d_\mathrm{circ} = 4$, **certified** by HiGHS in 233 s: hook-type faults propagating through the CNOT chains reduce the effective distance below the code distance. For the interleaved 7-layer schedule the solver could only bound $d_\mathrm{circ}$ in $[3, 5]$ within 900 s, with a verified undetected logical fault of weight 5.
 A direct decision query (is there an undetected logical fault of weight $\le 4$?) did not terminate in 1500 s. We therefore split it into a covering sweep (`scripts/run_forced_sweep.py`): subproblem $j$ forces mechanism $j$ into the fault and excludes every mechanism with a smaller index, so a fault of weight $\le 4$, if one existed, would be found in exactly one subproblem (the one of its smallest index). Forcing one mechanism makes each subproblem easy (seconds). All 2232 subproblems were infeasible and none was unresolved (3903 s on 6 workers), so there is no such fault and $d_\mathrm{circ} \ge 5$ for the interleaved schedule; together with the verified weight-5 witness this gives $d_\mathrm{circ} = 5$ exactly. The method was validated on the sequential schedule (known weight 4: feasible at $W = 4$, infeasible at $W = 3$) and on the interleaved weight-5 witness (feasible at 5, infeasible at 4); `scripts/validate_sweep.py`.
+The same covering sweep in the $X$ basis (4149 s) also proves that no undetected logical fault of weight $\le 4$ exists, and the direct solver found a verified fault of weight 5, so $d_\mathrm{circ} = 5$ exactly in both bases for the interleaved schedule.
 This is a measurement of two schedules on one code and one noise model; it does not show that the interleaved schedule preserves or loses distance relative to the sequential one unless the bounds above separate. For BB90, BB108 and BB144 the time-limited bounds are wide (see the table) and carry no conclusion; with only 6 rounds the time-like distance also limits $d_\mathrm{circ}$ below the code distance of the larger codes.
 
 ### 9A.2 Zero-Cost Logical Gates from Translation Automorphisms
@@ -575,7 +578,7 @@ In accordance with strict empirical reporting standards, we state the limitation
 3. **BB288 Distance Not Certified and Not Swept:** Within the $600.6\text{ s}$ MILP budget, HiGHS established only the bounds $4 \le d_X, d_Z \le 18$ for BB288 ($[[288, 12, \le 18]]$); the value $d = 18$ is the published figure from Bravyi et al. [3] and is not independently certified here. BB288 was also excluded from the Monte Carlo threshold sweeps due to single-machine compute budget constraints.
 4. **Modest GNN Improvement and Code-Capacity Scope:** The `int8` `TannerGNN` second-tier fallback was trained and evaluated only on the code-capacity $H_Z$ graph of BB72 at $p = 0.06$ (BP10), where it reduced logical failure rates by $1.00$ percentage point ($23.65\% \to 22.65\%$, 24 of 2000 shots resolved). It has not been trained or evaluated on multi-round circuit-level DEM graphs.
 5. **Simulated Uniform Depolarizing Noise and 6-Round Horizon:** Thresholds are estimated from 6-round memory experiments (`rounds = 6`, rather than $d$ rounds per code) with up to $30\,000$ shots per point under idealized uniform depolarizing noise. Moreover, because BB90 and BB108 share distance $d = 10$, `estimate_threshold` averages $P_L(p)$ by unique distance $d \in \{6, 10, 12\}$ and reports a single median crossing value. Finally, `p_logical_per_round` assumes independent per-round failure semantics and is used only as a plotting convenience scale.
-6. **Circuit-Level (Effective) Distance Only Partly Resolved:** Section 9A.1 computes it for BB72 with 6 rounds, one noise model and the $Z$ basis only: $d_\mathrm{circ} = 4$ (certified) for the sequential schedule, and bounds $[3, 5]$ for the interleaved one, tightened by the covering sweep to $\ge 5$, hence exactly $5$. The $X$ basis, longer horizons and the larger codes are not resolved within the solver time limits, so whether the depth-7 schedule preserves the circuit distance of the larger codes is **not established**.
+6. **Circuit-Level (Effective) Distance Only Partly Resolved:** Section 9A.1 computes it for BB72 with 6 rounds and one noise model, in the $Z$ and $X$ bases for the interleaved schedule and in $Z$ only for the sequential one: $d_\mathrm{circ} = 4$ (certified) for the sequential schedule, and bounds $[3, 5]$ for the interleaved one, tightened by the covering sweep to $\ge 5$, hence exactly $5$. Longer horizons and the larger codes are not resolved within the solver time limits, so whether the depth-7 schedule preserves the circuit distance of the larger codes is **not established**.
 7. **Few Distinct Distances and Finite Shots:** The threshold crossing rests on three distinct distances (6, 10, 12) with at most $30\,000$ shots per point and, near $p = 2 \times 10^{-3}$, as few as $8$ observed failures for BB144; the quoted ratios (for instance $65.4\times$) carry large statistical uncertainty.
 8. **Sliding-Window Study Scope:** Three window configurations $(2,1)$, $(3,1)$, $(4,2)$ were measured, on two codes (BB72, BB144), two physical error rates ($2 \times 10^{-3}$ and $3 \times 10^{-3}$) and 6 rounds, with 20 000 to 30 000 shots at the lower rate and 10 000 at the higher one. The windows are orchestrated in Python around the C++ kernel (no fused loop, no parallel windows), BP and OSD times inside a window step are not separated, the timings are single-machine, and the BB144 failure counts at $p = 2 \times 10^{-3}$ (11 to 21) are too small to resolve the accuracy cost there. Windows much shorter than the code distance lose accuracy; larger $W$ was not explored. The batch-amortized latencies divide the time of a 16-shot chunk by 16 and therefore include the scalar OSD of any lane in the chunk (the same convention as Tables 6 and 7); single-shot values are the per-shot latency.
 9. **No Physical QPU Execution:** The OpenQASM 3.0 output with `extern decode_x` and `extern decode_z` real-time feedback calls is verified by parsing against the reference `openqasm3` AST parser, not executed on physical quantum hardware.
