@@ -36,7 +36,13 @@ def schedules(names):
 
 
 def gnns(names, steps):
-    import torch
+    if not names:
+        return
+    try:
+        import torch
+    except ImportError:
+        print("torch is not installed: skipping the INT8 GNN models (the console works without them).")
+        return
 
     from decoder.gnn import quantize_int8, train_gnn
     torch.set_num_threads(max(1, (os.cpu_count() or 4) - 2))

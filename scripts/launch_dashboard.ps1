@@ -11,9 +11,10 @@ $env:PYTHONPATH = "src"
 # one-time assets: decoder DLL, kernel latency numbers, interleaved schedules, small INT8 GNNs
 & $py -c "from decoder.fast import build; build()"
 if (-not (Test-Path "results\kernel_latency.json")) { & $py scripts\bench_kernel.py | Out-Null }
-if (-not (Test-Path "results\gnn\BB72_hz.npz") -or -not (Test-Path "results\schedules\BB288.json")) {
-    Write-Host "Precomputing schedules and GNN models (first run only, a few minutes)..."
-    & $py scripts\precompute_assets.py --gnn BB72
+$hasTorch = (& $py -c "import importlib.util as u; print(int(u.find_spec('torch') is not None))") -eq "1"
+if (-not (Test-Path "results\schedules\BB288.json") -or ($hasTorch -and -not (Test-Path "results\gnn\BB72_hz.npz"))) {
+    Write-Host "Precomputing schedules (and GNN models if torch is installed); first run only, a few minutes..."
+    if ($hasTorch) { & $py scripts\precompute_assets.py --gnn BB72 } else { & $py scripts\precompute_assets.py --gnn }
 }
 
 $url = "http://localhost:$Port"

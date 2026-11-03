@@ -40,6 +40,7 @@ One screen, no tabs, no CDN: a string-art Tanner graph (each nail is a qubit, ea
 ```powershell
 git clone https://github.com/franciscohenderson/ftqc-qldpc ; cd ftqc-qldpc
 scripts\setup.ps1                  # venv (Python 3.12+), dependencies, builds the C++20 decoder, runs the tests
+                                   # add -WithGnn to also install CPU torch (~200 MB) for the optional INT8 GNN fallback
 scripts\launch_dashboard.ps1       # API + live console at http://localhost:8000   (/docs for the OpenAPI UI)
 $env:PYTHONPATH="src"; .\.venv\Scripts\python.exe -m pytest -q          # 62 tests (61 + 1 skipped if the optional torch extra is missing)
 .\.venv\Scripts\python.exe scripts\bench_window.py                    # sliding-window study
@@ -52,7 +53,7 @@ The C++ kernel is compiled with `zig c++` (`pip install ziglang`) or `clang++`; 
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install -e ".[build]" && pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -e ".[build]"        # optional GNN fallback: pip install torch --index-url https://download.pytorch.org/whl/cpu
 PYTHONPATH=src python -c "from decoder.fast import build; build(force=True)"
 PYTHONPATH=src python -m pytest -q
 PYTHONPATH=src python -m uvicorn api.server:app --app-dir src --port 8000   # live console at http://localhost:8000
