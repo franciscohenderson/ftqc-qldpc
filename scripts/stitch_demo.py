@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("frames", nargs="?", default=str(ROOT / "dist" / "demo_frames"))
-    ap.add_argument("out", nargs="?", default=str(ROOT / "dist" / "outreach_ready" / "el_telar_live_demo.gif"))
+    ap.add_argument("out", nargs="?", default=str(ROOT / "dist" / "outreach_ready" / "tars_live_demo.gif"))
     ap.add_argument("--width", type=int, default=1000)
     ap.add_argument("--ms", type=int, default=450, help="milliseconds per frame")
     a = ap.parse_args()

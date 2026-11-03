@@ -29,8 +29,11 @@ const snap = async (caption) => { const f = path.join(dir, String(n++).padStart(
 const burst = async (count, gap, caption) => { for (let i = 0; i < count; i++) { await snap(caption); await wait(gap); } };
 
 await page.goto(base + "/", { waitUntil: "load" });
-await wait(7000);                                          // live stream fills the console (code-capacity mode)
-await burst(8, 350, "Live decoding: syndromes light the threads, the corrections close them");
+await wait(8000);                                          // the five live streams fill the console
+await burst(6, 400, "All five codes decoding side by side, each with its own live time");
+await page.click('.card[data-c="BB72"]');                   // zoom into one code
+await wait(4500);
+await burst(6, 350, "One code full screen: failures are labelled, corrections close them");
 
 // the 7 layers of the interleaved CNOT schedule
 for (let layer = 0; layer < 7; layer++) {
@@ -43,11 +46,11 @@ await wait(300);
 await burst(2, 250, "Sequential schedule: 12 layers");
 await page.click("#tI");
 
-await page.click('#modes button[data-m="full"]');          // full-horizon circuit decoding
+await page.click('#modos button[data-m="full"]');          // full-horizon circuit decoding
 await wait(3500);
 await burst(5, 600, "Full-horizon circuit decoding");
 
-await page.click('#modes button[data-m="win"]');           // sliding-window (W,F)
+await page.click('#modos button[data-m="win"]');           // sliding-window (W,F)
 await wait(3500);
 await burst(7, 600, "Sliding-window (W,F) decoding: much shorter wait after the last round");
 

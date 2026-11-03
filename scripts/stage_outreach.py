@@ -123,7 +123,7 @@ def build(manifest: dict, answers: dict, files: dict[str, bool]) -> str:
     parts.append("</div>")
     media = []
     if files.get("gif"):
-        media.append('<a class="btn alt" href="el_telar_live_demo.gif" target="_blank">Preview GIF</a>')
+        media.append('<a class="btn alt" href="tars_live_demo.gif" target="_blank">Preview GIF</a>')
     media.append('<a class="btn alt" href="FTQC_qLDPC_Whitepaper_2026.pdf" target="_blank">Open PDF</a>')
     media.append(f'<button class="alt" data-copy="rel">Copy PDF download link</button>')
     data["rel"] = manifest["pdf_url"]
@@ -168,7 +168,7 @@ def main():
         sys.exit(f"{man} not found: generate the outreach bundle first")
     manifest = json.loads(man.read_text(encoding="utf-8"))
     answers = parse_answers((OUT / "05_YC_CDL_Accelerator_Application_Answers.md").read_text(encoding="utf-8"))
-    page = build(manifest, answers, {"gif": (OUT / "el_telar_live_demo.gif").exists()})
+    page = build(manifest, answers, {"gif": (OUT / "tars_live_demo.gif").exists()})
     dest = OUT / "LAUNCHPAD.html"
     dest.write_text(page, encoding="utf-8")
     print(f"wrote {dest} ({len(page) // 1024} KB; {sum(len(v) for v in answers.values())} answers, {len(manifest['emails'])} emails)")

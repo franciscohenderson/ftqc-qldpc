@@ -27,8 +27,12 @@ const wait = (ms) => page.waitForTimeout(ms);
 const shot = async (name, opts = {}) => { await page.screenshot({ path: path.join(out, name), ...opts }); console.log("saved", name); };
 
 await page.goto(base + "/", { waitUntil: "load" });
-await wait(11000);                                      // let the live stream fill the console
-await shot("live_hud.png");
+await wait(11000);                                      // let the five live streams fill the console
+await shot("live_hud.png");               // the five codes side by side
+
+// one code full screen (BB72)
+await page.click('.card[data-c="BB72"]');
+await wait(5000);
 
 // weave + schedule: show one CNOT layer of the interleaved schedule
 await page.evaluate(() => { const r = document.getElementById("lay"); r.value = 2; r.dispatchEvent(new Event("input")); });
@@ -36,7 +40,7 @@ await wait(1200);
 await shot("tanner_explorer.png");
 
 // sliding-window mode in live telemetry
-await page.click('#modes button[data-m="win"]');
+await page.click('#modos button[data-m="win"]');
 await wait(9000);
 await shot("window_mode.png");
 

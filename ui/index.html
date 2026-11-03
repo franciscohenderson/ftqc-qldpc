@@ -3,409 +3,114 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Tars: cinco códigos cuánticos qLDPC corrigiendo errores en vivo, con los tiempos reales del decodificador.">
 <link rel="icon" href="data:,">
-<title>Telar · el decodificador, en vivo</title>
-<style>
-@font-face{font-family:"Bricolage";src:url(/ui/fonts/bricolage-grotesque.woff2) format("woff2");font-weight:200 800;font-display:swap}
-@font-face{font-family:"DM Mono";src:url(/ui/fonts/dm-mono-normal-400.woff2) format("woff2");font-weight:400;font-display:swap}
-@font-face{font-family:"DM Mono";src:url(/ui/fonts/dm-mono-normal-500.woff2) format("woff2");font-weight:500;font-display:swap}
-/* avoid-ai-design-ignore-file: C2 — el añil es un tinte textil elegido a propósito (añil, cochinilla, gualda sobre lino), no un acento por defecto */
-:root{
-  --lino:#d9d2bf; --lino2:#cfc7b1; --papel:#e6e0cf; --tinta:#16204a;      /* tinta = añil oscuro */
-  --anil:#2a3f8f; --cochi:#a3162d; --gualda:#e0a000; --verdin:#287a5e; --mut:#5b5a52;
-  --f:"Bricolage",system-ui,sans-serif; --m:"DM Mono",ui-monospace,monospace; --ease:cubic-bezier(.16,1,.3,1);
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--lino);color:var(--tinta);font:400 16px/1.5 var(--f);-webkit-font-smoothing:antialiased;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 .09  0 0 0 0 .12  0 0 0 0 .29  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
-button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
-:focus-visible{outline:2px solid var(--cochi);outline-offset:3px}
-.m{font:400 12px/1.55 var(--m);color:var(--mut)}
-.n{font-variant-numeric:tabular-nums}
-.screen{height:100vh;height:100svh;min-height:600px;display:grid;grid-template-rows:auto minmax(0,1fr) clamp(150px,24vh,230px);padding:0 clamp(14px,2vw,30px)}
-/* ---- cabecera ---- */
-.hd{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 26px;padding:14px 0 10px;border-bottom:1.5px solid var(--tinta)}
-.hd h1{margin:0;font-weight:800;font-size:clamp(1.7rem,3.2vw,2.8rem);line-height:1;letter-spacing:-.035em}
-.hd .sub{flex:1;min-width:240px}
-.codes{display:flex;gap:4px}
-.codes button{font:500 12px var(--m);padding:3px 9px;border:1px solid transparent;color:var(--mut)}
-.codes button[aria-pressed=true]{border-color:var(--tinta);color:var(--tinta);background:var(--papel)}
-.codes button:hover{color:var(--tinta)}
-.st{display:flex;align-items:center;gap:8px}
-.dot{width:8px;height:8px;border-radius:50%;background:#9b9684}.dot.on{background:var(--verdin);box-shadow:0 0 0 3px rgba(40,122,94,.18)}
-/* ---- cuerpo: lecturas | tejido | contadores ---- */
-.body{display:grid;grid-template-columns:minmax(210px,.8fr) minmax(0,2fr) minmax(210px,.8fr);gap:clamp(12px,2vw,30px);min-height:0;padding:12px 0}
-.col{display:flex;flex-direction:column;gap:14px;min-height:0;overflow:hidden}
-.cap{font:500 11px var(--m);color:var(--mut);margin:0 0 4px;display:flex;justify-content:space-between}
-.row{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px dotted rgba(22,32,74,.45)}
-.row .k{font:400 12px var(--m);color:var(--tinta);flex:0 1 auto}
-.row .lead{flex:1}
-.big{font-weight:700;letter-spacing:-.04em;line-height:.95;font-variant-numeric:tabular-nums}
-.big small{font:500 max(.5em,13px) var(--m);letter-spacing:0;margin-left:.3em;color:var(--tinta)}
-.l1{font-size:clamp(2.4rem,5.4vw,5.2rem)} .l2{font-size:clamp(1.5rem,2.6vw,2.4rem)}
-.note{font:400 11.5px/1.5 var(--m);color:var(--mut)}
-.note b{color:var(--tinta);font-weight:500}
-.weave{position:relative;min-height:0}
-.weave canvas{position:absolute;inset:0;width:100%;height:100%}
-.tip{position:absolute;pointer-events:none;font:500 12px var(--m);background:var(--tinta);color:var(--lino);padding:4px 8px;white-space:nowrap;opacity:0;transform:translate(10px,-24px)}
-.legend{display:flex;gap:14px;flex-wrap:wrap;font:400 11.5px var(--m);color:var(--tinta)}
-.legend i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:3px;margin-right:6px}
-.cnt{display:grid;grid-template-columns:1fr auto;gap:2px 10px}
-.cnt dt{font:400 12px var(--m)}.cnt dd{margin:0;font:500 13px var(--m);text-align:right;font-variant-numeric:tabular-nums}
-.bar{display:flex;height:8px;margin:8px 0 4px;background:var(--lino2)}
-.bar i{display:block;height:100%;transition:width .5s var(--ease)}
-/* control de ruido: carrete */
-.rail{position:relative;height:30px;touch-action:none;cursor:ew-resize;margin-top:6px}
-.rail::before{content:"";position:absolute;left:0;right:0;top:14px;height:0;border-top:1.5px solid var(--tinta)}
-.rail .tk{position:absolute;top:9px;height:11px;border-left:1px solid var(--tinta)}
-.rail .th{position:absolute;top:4px;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:var(--cochi);border:2px solid var(--lino)}
-/* ---- papel de registro ---- */
-.paper{position:relative;margin:0 calc(-1 * clamp(14px,2vw,30px));padding:10px clamp(14px,2vw,30px) 12px;background:var(--papel);border-top:1.5px solid var(--tinta);display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,.7fr);gap:clamp(12px,2vw,30px);min-height:0}
-.paper::before{content:"";position:absolute;left:0;right:0;top:0;height:7px;background:radial-gradient(circle at 7px 3.5px,var(--lino) 2.2px,transparent 2.6px) 0 0/16px 7px repeat-x}
-.chart{position:relative;min-height:0}
-.chart canvas{position:absolute;inset:0;width:100%;height:100%}
-.sched{display:flex;flex-direction:column;gap:6px;min-height:0}
-.sched .tog{display:flex;gap:8px}
-.sched .tog button{font:500 12px var(--m);padding:3px 9px;border:1px solid var(--tinta)}
-.sched .tog button[aria-pressed=true]{background:var(--tinta);color:var(--lino)}
-.modes{display:flex;flex-wrap:wrap;gap:5px}.modes button{font:500 11.5px var(--m);padding:3px 8px;border:1px solid var(--tinta)}
-.modes button[aria-pressed=true]{background:var(--tinta);color:var(--lino)}.modes button:disabled{opacity:.35;cursor:not-allowed}
-.wf{display:flex;align-items:center;gap:8px;margin-top:6px;font:400 12px var(--m)}.wf select{font:500 12px var(--m);background:var(--papel);color:var(--tinta);border:1px solid var(--tinta);padding:1px 4px}
-input[type=range]{width:100%;accent-color:var(--cochi);margin:2px 0}
-/* ---- más abajo ---- */
-.more{padding:clamp(40px,8vh,90px) clamp(14px,2vw,30px);max-width:1500px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:clamp(20px,4vw,64px);border-top:1.5px solid var(--tinta)}
-.more h2{margin:0 0 14px;font-weight:800;font-size:clamp(2rem,5vw,4.6rem);line-height:.92;letter-spacing:-.04em}
-.more p{max-width:36em;margin:0 0 12px}
-.more svg{width:100%;height:auto;max-height:70vh}
-pre{margin:0;max-height:60vh;overflow:auto;font:400 12px/1.6 var(--m);background:var(--papel);padding:14px;border:1px solid rgba(22,32,74,.3)}
-footer{padding:30px clamp(14px,2vw,30px) 60px;max-width:1500px;margin:0 auto}
-@media (max-width:980px){.screen{height:auto;grid-template-rows:auto auto auto}.body{grid-template-columns:1fr}.weave{height:min(100vw,560px)}.paper{grid-template-columns:1fr}.chart{height:150px}.more{grid-template-columns:1fr}}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
-</style>
+<style>html{background:#18225a}:focus-visible{outline:2px solid #f6bd44;outline-offset:3px}</style>
+<title>Tars · el decodificador, en vivo</title>
+<link rel="preload" href="/ui/fonts/familjen-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/ui/tars.css?v=10">
 </head>
 <body>
-<div class="screen">
-  <header class="hd">
-    <h1>Telar</h1>
-    <p class="sub m" style="margin:0">Un decodificador que lee síntomas sin ver la falla. Cada hilo es un chequeo, cada clavo un qubit; todo lo que se mueve viene de él, en vivo.</p>
-    <div class="codes" id="codes" role="group" aria-label="Código"></div>
-    <div class="st m"><span class="dot" id="dot"></span><span id="conn">conectando…</span></div>
-  </header>
+<header class="bar">
+  <h1 class="mark"><canvas id="marca" aria-hidden="true"></canvas><span>Tars</span></h1>
+  <p class="lema">Cinco códigos cuánticos corrigiendo errores ahora mismo, en esta máquina. Cada hilo es un chequeo y cada clavo, un qubit.</p>
+  <div class="vista" id="vista" role="group" aria-label="Vista">
+    <button data-v="cinco" aria-pressed="true">Los cinco</button><button data-v="uno" aria-pressed="false">Uno solo</button>
+  </div>
+  <div class="estado"><span class="punto" id="punto"></span><span id="conexion">Conectando…</span></div>
+</header>
 
-  <div class="body">
-    <div class="col" id="left">
-      <div>
-        <p class="cap"><span id="lab-amort">lo que tarda, por disparo</span></p>
-        <div class="big l1" id="b-amort">—</div>
-        <p class="note" id="note-amort" style="margin:6px 0 10px">núcleo BP, 16 disparos por pasada SIMD. <b>Es lo único que baja de 1 µs.</b></p>
-        <div class="row"><span class="k" id="lab-single">un disparo solo</span><span class="lead"></span><span class="big l2" id="b-single">—</span></div>
-        <div class="row"><span class="k" id="lab-total">con OSD, este lote</span><span class="lead"></span><span class="big l2" id="b-total">—</span></div>
-      </div>
-      <div>
-        <p class="cap"><span>lo que pasó en el último disparo</span></p>
-        <p class="note" id="last" style="margin:0">esperando el primer disparo…</p>
+<main>
+<section class="stage" id="consola" aria-label="Consola en vivo">
+
+  <div class="cinco" id="cinco">
+    <div class="cards" id="cards"></div>
+    <div class="mando">
+      <div class="chips" id="chips-codigos" role="group" aria-label="Qué códigos mostrar"></div>
+      <div class="ruido"><span class="tit">Ruido físico</span><span class="n v pval">1,0e-2</span><div class="riel" id="riel5"></div></div>
+      <p class="tit">Tocá un código para verlo en grande. Cuadrado: chequeo X. Rombo: chequeo Z. Hilo amarillo: síntoma.</p>
+    </div>
+    <div class="hist"><canvas id="strip5" aria-label="Tiempo de decisión de cada código, escala logarítmica"></canvas></div>
+  </div>
+
+  <div class="uno" id="uno" hidden>
+    <div class="gran">
+      <canvas class="tejido" id="cv" aria-label="Retícula del código: clavos (qubits) y chequeos"></canvas><div class="tip" id="tip"></div>
+      <button class="volver" id="volver">Volver a los cinco</button>
+      <div class="nombre"><h2 id="nom1">BB72</h2><p id="par1"></p></div>
+      <div class="lectura">
+        <p class="tit" id="l-a">BP decide cada disparo en</p>
+        <div class="cifra" id="b-a">—</div>
+        <p class="sub" id="l-na"></p>
       </div>
     </div>
-
-    <div class="weave" id="weave"><canvas id="cv" aria-label="Retícula del código: clavos (qubits) y chequeos"></canvas><div class="tip" id="tip"></div></div>
-
-    <div class="col" id="right">
+    <aside class="lado" aria-label="Controles y lecturas">
       <div>
-        <p class="cap"><span>ruido físico <b class="n" id="pv" style="color:var(--tinta)">1,0e-2</b></span><span>por qubit</span></p>
-        <div class="rail" id="rail" role="slider" tabindex="0" aria-label="Probabilidad de error físico" aria-valuemin="0.001" aria-valuemax="0.1" aria-valuenow="0.01"><span class="th" id="th"></span></div>
-      </div>
-      <div>
-        <p class="cap"><span>qué decodifico</span></p>
-        <div class="modes" id="modes" role="group" aria-label="Modo de decodificación">
-          <button data-m="cc" aria-pressed="true">código solo</button><button data-m="full" aria-pressed="false">circuito completo</button><button data-m="win" aria-pressed="false">ventanas (W,F)</button>
+        <h4>Qué decodifico</h4>
+        <div class="modos" id="modos" role="group" aria-label="Modo de decodificación">
+          <button class="chip" data-m="cc" aria-pressed="true">Código solo</button><button class="chip" data-m="full" aria-pressed="false">Circuito completo</button><button class="chip" data-m="win" aria-pressed="false">Ventanas (W,F)</button>
         </div>
-        <div class="wf" id="wf" hidden><label>W <select id="selW"><option>2</option><option selected>3</option><option>4</option></select></label><label>F <select id="selF"><option selected>1</option><option>2</option></select></label><span class="note" id="wnote"></span></div>
+        <div class="wf" id="wf" hidden><label>W <select id="selW"><option>2</option><option selected>3</option><option>4</option></select></label><label>F <select id="selF"><option selected>1</option><option>2</option></select></label><span class="nota" id="wnote"></span></div>
       </div>
       <div>
-        <p class="cap"><span>quién resolvió cada disparo</span></p>
-        <div class="bar" aria-hidden="true"><i id="bB" style="background:var(--anil)"></i><i id="bO" style="background:var(--gualda)"></i><i id="bG" style="background:var(--verdin)"></i><i id="bF" style="background:var(--cochi)"></i></div>
-        <dl class="cnt">
-          <dt><i class="legend" style="display:inline"><i style="border-color:var(--anil);width:10px"></i></i>BP, directo</dt><dd id="c-bp">0</dd>
-          <dt><i class="legend" style="display:inline"><i style="border-color:var(--gualda);width:10px"></i></i>OSD-CS</dt><dd id="c-osd">0</dd>
-          <dt><i class="legend" style="display:inline"><i style="border-color:var(--verdin);width:10px"></i></i>GNN INT8</dt><dd id="c-gnn">0</dd>
-          <dt><i class="legend" style="display:inline"><i style="border-color:var(--cochi);width:10px"></i></i>sin solución</dt><dd id="c-fail">0</dd>
+        <h4>Ruido físico, <span class="n pval">1,0e-2</span> por qubit</h4>
+        <div class="riel" id="riel1"></div>
+      </div>
+      <div>
+        <h4>Cuánto tarda</h4>
+        <p class="nota" id="l-s" style="margin:0">Un disparo solo</p><div class="grande" id="b-s">—</div>
+        <p class="nota" id="l-t">Con OSD, el lote entero</p><div class="grande" id="b-t">—</div>
+      </div>
+      <div>
+        <h4>Quién resolvió cada disparo</h4>
+        <div class="barra" aria-hidden="true"><i id="bB" style="background:var(--x)"></i><i id="bO" style="background:var(--sint)"></i><i id="bG" style="background:var(--ok)"></i><i id="bF" style="background:var(--mal)"></i></div>
+        <dl class="cnt" style="margin:0">
+          <i style="background:var(--x)"></i><dt>BP, directo</dt><dd id="c-bp">0</dd>
+          <i style="background:var(--sint)"></i><dt>OSD-CS</dt><dd id="c-osd">0</dd>
+          <i style="background:var(--ok)"></i><dt>GNN INT8</dt><dd id="c-gnn">0</dd>
+          <i style="background:var(--mal)"></i><dt>Sin solución</dt><dd id="c-fail">0</dd>
         </dl>
       </div>
       <div>
-        <p class="cap"><span>falla lógica acumulada</span></p>
-        <div class="big l2" id="ler">—</div>
-        <p class="note" id="lerr" style="margin:4px 0 0">—</p>
+        <h4>El último disparo</h4>
+        <p class="nota" id="last" style="margin:0">Esperando el primer disparo…</p>
       </div>
-      <div class="legend" style="margin-top:auto">
-        <span><i style="border-color:var(--anil)"></i>chequeo X</span><span><i style="border-color:var(--cochi)"></i>chequeo Z</span><span><i style="border-color:var(--gualda)"></i>síntoma</span>
+      <div>
+        <h4>Falla lógica acumulada</h4>
+        <div class="grande" id="ler">—</div><p class="nota" id="lerr">—</p>
       </div>
-    </div>
+      <div>
+        <h4>Calendario de CNOT, <span id="lcount">—</span></h4>
+        <div class="cal"><button class="chip" id="tI" aria-pressed="true">Entrelazado</button><button class="chip" id="tS" aria-pressed="false">Secuencial</button><button class="chip" id="tP" aria-pressed="false">Reproducir</button></div>
+        <input type="range" id="lay" min="0" max="6" value="0" aria-label="Capa">
+        <p class="nota" id="ltxt" style="margin:0">—</p>
+      </div>
+    </aside>
+    <div class="hist"><canvas id="strip1" aria-label="Registro de latencias, escala logarítmica"></canvas></div>
   </div>
 
-  <div class="paper">
-    <div class="chart"><canvas id="strip" aria-label="Registro de latencias, escala logarítmica"></canvas></div>
-    <div class="sched">
-      <p class="cap" style="margin:0"><span>calendario de CNOT por ronda</span><span id="lcount">—</span></p>
-      <div class="tog"><button id="tI" aria-pressed="true">entrelazado</button><button id="tS" aria-pressed="false">secuencial</button><button id="tP" aria-pressed="false" aria-label="Reproducir capas">▶</button></div>
-      <input type="range" id="lay" min="0" max="6" value="0" aria-label="Capa">
-      <p class="note" id="ltxt" style="margin:0">—</p>
-    </div>
-  </div>
-</div>
+</section>
 
-<section class="more" id="prueba">
-  <div><h2>La prueba</h2><p>Qué tan seguido falla el código entero (6 rondas de medición) según cuánto ruido hay en cada qubit. Cada punto son miles de circuitos completos, simulados y decodificados. Las líneas llenas usan el calendario de <b id="p-n7">7</b> capas; las punteadas, el de 12.</p><p class="note" id="p-th">—</p></div>
+<section class="seccion" id="prueba">
+  <div><h2>La prueba</h2><p>Qué tan seguido falla el código entero, con 6 rondas de medición, según cuánto ruido hay en cada qubit. Cada punto son miles de circuitos completos, simulados y decodificados. Las líneas llenas usan el calendario de 7 capas; las punteadas, el de 12.</p><div class="chips" id="chips-plot" role="group" aria-label="Qué códigos graficar"></div><p class="nota" id="p-th">—</p></div>
   <svg id="plot" viewBox="0 0 700 470" role="img" aria-label="Error lógico contra error físico, escala logarítmica"></svg>
 </section>
-<section class="more" id="circuito">
-  <div><h2>El circuito</h2><p id="q-t">Compilando el circuito de BB72 con tres rondas…</p><p class="note">Con mediciones a mitad de circuito y dos llamadas externas, <b>decode_x</b> y <b>decode_z</b>, que son el lugar donde enchufa un decodificador en tiempo real.</p></div>
+
+<section class="seccion" id="calendario">
+  <div><h2>De 12 a 7 capas</h2><p>Cada ronda de chequeos necesita una cadena de CNOT. Hecha en secuencia lleva 12 capas; mezclando chequeos X y Z en la misma capa baja a 7, para los cinco códigos. Menos capas es menos tiempo para que se acumule ruido.</p></div>
+  <div class="prof" id="prof"></div>
+</section>
+
+<section class="seccion" id="circuito">
+  <div><h2>El circuito</h2><p id="q-t">Compilando el circuito de BB72 con tres rondas…</p><p class="nota">Con mediciones a mitad de circuito y dos llamadas externas, <b>decode_x</b> y <b>decode_z</b>: ahí enchufa un decodificador en tiempo real.</p></div>
   <pre id="qasm" aria-label="Programa OpenQASM 3.0">…</pre>
 </section>
-<footer class="m" id="honest"></footer>
+</main>
 
-<script src="/ui/vendor/motion.js"></script>
-<script src="/ui/live.js"></script>
-<script>
-"use strict";
-(() => {
-  const {animate, stagger, hover, press} = Motion;
-  const RM = Live.rm, $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
-  const C = {tinta: "#16204a", anil: "#2a3f8f", cochi: "#a3162d", gualda: "#e0a000", verdin: "#287a5e", lino: "#d9d2bf", papel: "#e6e0cf", mut: "#5b5a52"};
-  const nf = Live.nf;
+<footer id="honest"></footer>
 
-  /* =====================================================  EL TEJIDO  ===================================================== */
-  const cv = $("#cv"), g = cv.getContext("2d"), box = $("#weave"), tip = $("#tip");
-  let W = 0, H = 0, DPR = 1, geo = null, base = null, code = null, serverCode = null;
-  const live = {t0: 0, zs: [], xs: [], errX: [], errZ: [], corrX: [], corrZ: [], fail: null};
-  let hov = null, layer = null, dirty = true, playing = false;
-
-  function layout() {
-    DPR = Math.min(devicePixelRatio || 1, 2); const r = box.getBoundingClientRect(); W = r.width; H = r.height;
-    cv.width = W * DPR; cv.height = H * DPR; g.setTransform(DPR, 0, 0, DPR, 0, 0); buildBase(); dirty = true;
-  }
-  function buildGeo() {
-    if (!code) return; const T = code.tanner, n = code.n, mx = T.x_checks.length, mz = T.z_checks.length;
-    const cs = Math.min(W, H), R = cs * .455, cxm = W / 2, cym = H / 2;
-    const pt = (r, a) => [cxm + Math.cos(a) * r, cym + Math.sin(a) * r];
-    const ang = (i, m, off) => -Math.PI / 2 + (i + off) / m * Math.PI * 2;
-    geo = {R, cx: cxm, cy: cym,
-      D: Array.from({length: n}, (_, q) => pt(R, ang(q, n, 0))),
-      X: Array.from({length: mx}, (_, c) => pt(R * .42, ang(c, mx, .5))),
-      Z: Array.from({length: mz}, (_, c) => pt(R * .66, ang(c, mz, .25))),
-      xe: T.x_edges, ze: T.z_edges};
-  }
-  function buildBase() {
-    buildGeo(); if (!geo) return;
-    base = document.createElement("canvas"); base.width = W * DPR; base.height = H * DPR; const b = base.getContext("2d"); b.setTransform(DPR, 0, 0, DPR, 0, 0);
-    const lw = Math.max(.6, Math.min(1.1, 300 / code.n * .5));
-    b.lineWidth = lw;
-    b.strokeStyle = "rgba(42,63,143,.20)"; b.beginPath(); geo.xe.forEach(([c, q]) => { b.moveTo(...geo.X[c]); b.lineTo(...geo.D[q]); }); b.stroke();
-    b.strokeStyle = "rgba(163,22,45,.20)"; b.beginPath(); geo.ze.forEach(([c, q]) => { b.moveTo(...geo.Z[c]); b.lineTo(...geo.D[q]); }); b.stroke();
-    b.strokeStyle = "rgba(22,32,74,.35)"; b.lineWidth = 1; b.beginPath(); b.arc(geo.cx, geo.cy, geo.R + 14, 0, 7); b.stroke();
-    // clavos
-    const nr = Math.max(1.6, Math.min(3.4, 560 / code.n)); geo.nr = nr;
-    b.fillStyle = C.tinta; geo.D.forEach(([x, y]) => { b.beginPath(); b.arc(x, y, nr, 0, 7); b.fill(); });
-    // chequeos
-    geo.X.forEach(([x, y]) => { b.fillStyle = C.lino; b.strokeStyle = C.anil; b.lineWidth = 1.5; b.fillRect(x - 3.5, y - 3.5, 7, 7); b.strokeRect(x - 3.5, y - 3.5, 7, 7); });
-    geo.Z.forEach(([x, y]) => { b.fillStyle = C.lino; b.strokeStyle = C.cochi; b.lineWidth = 1.5; b.beginPath(); b.moveTo(x, y - 5); b.lineTo(x + 5, y); b.lineTo(x, y + 5); b.lineTo(x - 5, y); b.closePath(); b.fill(); b.stroke(); });
-    // índice de vecinos
-    geo.nx = geo.X.map(() => []); geo.nz = geo.Z.map(() => []); geo.qx = geo.D.map(() => []); geo.qz = geo.D.map(() => []);
-    geo.xe.forEach(([c, q]) => { geo.nx[c].push(q); geo.qx[q].push(c); }); geo.ze.forEach(([c, q]) => { geo.nz[c].push(q); geo.qz[q].push(c); });
-  }
-  const ease = t => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
-  function frame(now) {
-    requestAnimationFrame(frame);
-    const age = (now - live.t0) / 1000, fresh = age < 5.5;
-    if (!dirty && !fresh && !playing && !hov) return; dirty = false;
-    g.clearRect(0, 0, W, H); if (!geo || !base) return;
-    g.drawImage(base, 0, 0, W, H);
-    const edge = (A, ed, ids, col, w, a) => { g.strokeStyle = col; g.lineWidth = w; g.globalAlpha = a; g.beginPath(); ed.forEach(([c, q]) => { if (ids.has(c)) { g.moveTo(...A[c]); g.lineTo(...geo.D[q]); } }); g.stroke(); g.globalAlpha = 1; };
-    // capa del calendario
-    if (layer) {
-      const ex = [], ez = []; layer.forEach(([k, c, q]) => (k === "X" ? ex : ez).push([c, q]));
-      g.lineWidth = 2; g.strokeStyle = C.anil; g.beginPath(); ex.forEach(([c, q]) => { g.moveTo(...geo.X[c]); g.lineTo(...geo.D[q]); }); g.stroke();
-      g.strokeStyle = C.cochi; g.beginPath(); ez.forEach(([c, q]) => { g.moveTo(...geo.Z[c]); g.lineTo(...geo.D[q]); }); g.stroke();
-      g.fillStyle = C.tinta; const ph = (now / 900) % 1; ex.forEach(([c, q]) => dot(geo.X[c], geo.D[q], ph)); ez.forEach(([c, q]) => dot(geo.D[q], geo.Z[c], ph));
-    }
-    // síntomas: los hilos de los chequeos disparados se tensan
-    const a1 = ease(age / .25) * (1 - ease((age - 3.2) / 2));
-    if (a1 > .01) {
-      const zs = new Set(live.zs), xs = new Set(live.xs);
-      edge(geo.Z, geo.ze, zs, C.gualda, 2.4, a1); edge(geo.X, geo.xe, xs, C.gualda, 2.4, a1);
-      g.fillStyle = C.gualda; g.globalAlpha = a1;
-      live.zs.forEach(c => { const [x, y] = geo.Z[c]; g.beginPath(); g.arc(x, y, 6 + 3 * Math.sin(age * 9) * (1 - ease(age / 1.2)), 0, 7); g.fill(); });
-      live.xs.forEach(c => { const [x, y] = geo.X[c]; g.beginPath(); g.arc(x, y, 6 + 3 * Math.sin(age * 9) * (1 - ease(age / 1.2)), 0, 7); g.fill(); });
-      g.globalAlpha = 1;
-    }
-    // falla (clavo con anillo cochinilla/añil) y remiendo (verdín)
-    const a2 = (1 - ease((age - 3.6) / 1.6));
-    if (a2 > .01) {
-      g.lineWidth = 2; g.globalAlpha = a2;
-      live.errX.forEach(q => ring(geo.D[q], 9 + 2 * Math.sin(age * 7), C.cochi)); live.errZ.forEach(q => ring(geo.D[q], 9 + 2 * Math.sin(age * 7), C.anil));
-      const k = ease((age - 1.1) / .5); if (k > 0) { g.globalAlpha = a2 * k; [...live.corrX, ...live.corrZ].forEach(q => ring(geo.D[q], 14, C.verdin)); }
-      g.globalAlpha = 1;
-    }
-    // hover: vecindad
-    if (hov) {
-      g.lineWidth = 2.2; g.strokeStyle = C.tinta; g.beginPath();
-      if (hov.t === "q") { geo.qx[hov.i].forEach(c => { g.moveTo(...geo.X[c]); g.lineTo(...geo.D[hov.i]); }); geo.qz[hov.i].forEach(c => { g.moveTo(...geo.Z[c]); g.lineTo(...geo.D[hov.i]); }); }
-      else { const P = hov.t === "x" ? geo.X[hov.i] : geo.Z[hov.i], N = hov.t === "x" ? geo.nx[hov.i] : geo.nz[hov.i]; N.forEach(q => { g.moveTo(...P); g.lineTo(...geo.D[q]); }); }
-      g.stroke();
-    }
-  }
-  function ring([x, y], r, col) { g.strokeStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke(); }
-  function dot(a, b, ph) { g.beginPath(); g.arc(a[0] + (b[0] - a[0]) * ph, a[1] + (b[1] - a[1]) * ph, 2.6, 0, 7); g.fill(); }
-  cv.addEventListener("pointermove", e => {
-    if (!geo) return; const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; let best = null, bd = 14 * 14;
-    const test = (arr, t) => arr.forEach(([px, py], i) => { const d = (px - x) ** 2 + (py - y) ** 2; if (d < bd) { bd = d; best = {t, i}; } });
-    test(geo.D, "q"); test(geo.X, "x"); test(geo.Z, "z");
-    if ((best && hov && best.t === hov.t && best.i === hov.i) || (!best && !hov)) return; hov = best; dirty = true;
-    if (!best) { tip.style.opacity = 0; return; }
-    const P = best.t === "q" ? geo.D[best.i] : best.t === "x" ? geo.X[best.i] : geo.Z[best.i];
-    tip.textContent = best.t === "q" ? `qubit ${best.i}: está en ${geo.qx[best.i].length} chequeos X y ${geo.qz[best.i].length} Z` : `chequeo ${best.t.toUpperCase()} ${best.i}: toca ${(best.t === "x" ? geo.nx : geo.nz)[best.i].length} qubits`;
-    tip.style.left = P[0] + "px"; tip.style.top = P[1] + "px"; tip.style.opacity = 1;
-  });
-  cv.addEventListener("pointerleave", () => { hov = null; tip.style.opacity = 0; dirty = true; });
-  new ResizeObserver(layout).observe(box);
-
-  /* =====================================================  PAPEL DE REGISTRO  ===================================================== */
-  const LBL = {a: "amortizado", s: "un disparo", t: "con OSD"};
-  const sc = $("#strip"), sg = sc.getContext("2d"), hist = []; let SW = 0, SH = 0;
-  function sizeStrip() { const r = sc.parentElement.getBoundingClientRect(); const d = Math.min(devicePixelRatio || 1, 2); SW = r.width; SH = r.height; sc.width = SW * d; sc.height = SH * d; sg.setTransform(d, 0, 0, d, 0, 0); drawStrip(); }
-  new ResizeObserver(sizeStrip).observe(sc.parentElement);
-  const LO = Math.log10(100), HI = Math.log10(1e7);
-  function drawStrip() {
-    sg.clearRect(0, 0, SW, SH); const L = 44, B = 16, T = 8, w = SW - L - 6, h = SH - T - B, Y = ns => T + (1 - (Math.log10(Math.max(100, Math.min(1e7, ns))) - LO) / (HI - LO)) * h;
-    sg.font = "400 10.5px DM Mono"; sg.textAlign = "right"; sg.lineWidth = 1;
-    [[100, "100 ns"], [1e3, "1 µs"], [1e4, "10 µs"], [1e5, "100 µs"], [1e6, "1 ms"], [1e7, "10 ms"]].forEach(([v, t]) => { const y = Y(v); sg.strokeStyle = v === 1e3 ? C.cochi : "rgba(22,32,74,.18)"; sg.lineWidth = v === 1e3 ? 1.6 : 1; sg.beginPath(); sg.moveTo(L, y); sg.lineTo(L + w, y); sg.stroke(); sg.fillStyle = v === 1e3 ? C.cochi : C.mut; sg.fillText(t, L - 6, y + 3.5); });
-    const step = Math.max(6, Math.min(16, w / 90)), N = Math.floor(w / step);
-    const series = [["a", C.tinta, 2], ["s", C.anil, 1.4], ["t", C.gualda, 1.4]];
-    series.forEach(([k, col, lw]) => { sg.strokeStyle = col; sg.lineWidth = lw; sg.beginPath(); hist.slice(-N).forEach((p, i, arr) => { const x = L + w - (arr.length - 1 - i) * step, y = Y(p[k]); i ? sg.lineTo(x, y) : sg.moveTo(x, y); }); sg.stroke();
-      sg.fillStyle = col; hist.slice(-N).forEach((p, i, arr) => { const x = L + w - (arr.length - 1 - i) * step; sg.beginPath(); sg.arc(x, Y(p[k]), lw > 1.5 ? 2.2 : 1.7, 0, 7); sg.fill(); }); });
-    sg.textAlign = "left"; sg.font = "500 10.5px DM Mono"; sg.fillStyle = C.tinta; sg.fillText(LBL.a, L + 8, T + 10); sg.fillStyle = C.anil; sg.fillText(LBL.s, L + 8 + LBL.a.length * 6.6 + 14, T + 10); sg.fillStyle = "#a07400"; sg.fillText(LBL.t, L + 8 + (LBL.a.length + LBL.s.length) * 6.6 + 28, T + 10);
-  }
-
-  /* =====================================================  DATOS EN VIVO  ===================================================== */
-  const num = (id, ns) => { const t = Live.t(ns); $(id).innerHTML = `${t.v}<small>${t.u}</small>`; };
-  const tierName = t => t === 0 ? "BP lo resolvió directo" : t === 1 ? "BP no alcanzó: resolvió OSD" : t === 2 ? "lo resolvió el GNN INT8" : "sin solución";
-  Live.on("hello", m => { serverCode = m.config.code; });
-  /* ---------- modo de decodificación: código solo / circuito completo / ventanas (W,F) ---------- */
-  let mode = "cc", wantMsg = {mode: "code_capacity", decoder: "full"}, roundTimer = null;
-  const TXT = {
-    cc: {a: "lo que tarda, por disparo", na: "núcleo BP, 16 disparos por pasada SIMD. <b>Es lo único que baja de 1 µs.</b>", s: "un disparo solo", t: "con OSD, este lote", L: {a: "amortizado", s: "un disparo", t: "con OSD"}},
-    full: {a: "núcleo BP sobre el circuito entero", na: "toda la historia de 6 rondas en un solo problema. Lo que sigue a BP (OSD) es lo caro.", s: "un disparo solo, BP", t: "decodificación completa, con OSD", L: {a: "BP amortizado", s: "BP un disparo", t: "completo con OSD"}},
-    win: {a: "por paso de ventana, en lote", na: "cada ventana resuelve W rondas y confirma F; el costo no crece con la duración.", s: "por paso de ventana, un disparo", t: "reacción tras la última ronda (un disparo)", L: {a: "paso (lote)", s: "paso (uno)", t: "reacción final"}},
-  };
-  const curP = () => Math.pow(10, P0 + pf * (P1 - P0));
-  function applyMode(m, send) {
-    mode = m; $$("#modes button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
-    $("#wf").hidden = m !== "win"; const t = TXT[m];
-    $("#lab-amort").textContent = t.a; $("#note-amort").innerHTML = t.na; $("#lab-single").textContent = t.s; $("#lab-total").textContent = t.t; Object.assign(LBL, t.L);
-    const W = +$("#selW").value, F = Math.min(+$("#selF").value, W - 1);
-    $("#wnote").textContent = m === "win" ? (Math.ceil((7 - W) / F) + 1) + " ventanas" : "";
-    wantMsg = m === "cc" ? {mode: "code_capacity", decoder: "full"} : {mode: "circuit", decoder: m === "win" ? "window" : "full"};
-    hist.length = 0; drawStrip(); clearTimeout(roundTimer);
-    if (send) {
-      const cfg = Object.assign({}, wantMsg, m === "cc" ? {rate_hz: 2} : {rate_hz: 1, rounds: 6, schedule: "interleaved", W, F});
-      if (m !== "cc" && curP() > .006) { setP((Math.log10(.004) - P0) / (P1 - P0), false); cfg.p = .004; }
-      Live.configure(cfg);
-    }
-  }
-  $$("#modes button").forEach(b => b.onclick = () => { if (!b.disabled) applyMode(b.dataset.m, true); });
-  $("#selW").onchange = () => { const W = +$("#selW").value; [...$("#selF").options].forEach(o => o.disabled = +o.value >= W); if (+$("#selF").value >= W) $("#selF").value = W - 1; applyMode("win", true); };
-  $("#selF").onchange = () => applyMode("win", true);
-  function playRounds(rounds) {
-    clearTimeout(roundTimer); let i = 0;
-    const step = () => { if (i >= rounds.length) return; Object.assign(live, {t0: performance.now(), zs: rounds[i].z_syndrome || [], xs: rounds[i].x_syndrome || [], errX: [], errZ: [], corrX: [], corrZ: []}); dirty = true; i++; roundTimer = setTimeout(step, 330); };
-    step();
-  }
-  Live.on("tick", m => {
-    if (!geo || serverCode !== code.name) return;
-    if (m.mode !== wantMsg.mode || (m.mode === "circuit" && m.decoder !== wantMsg.decoder)) return;    // tick de la configuración anterior
-    const L = m.latency, d = m.display;
-    num("#b-amort", L.amortized_ns.p50); num("#b-single", L.bp_kernel_ns.p50); num("#b-total", L.total_ns.p50);
-    hist.push({a: L.amortized_ns.p50, s: L.bp_kernel_ns.p50, t: L.total_ns.p50}); if (hist.length > 400) hist.shift(); drawStrip();
-    const c = m.counters; $("#c-bp").textContent = c.bp_converged.toLocaleString("es-AR"); $("#c-osd").textContent = c.osd.toLocaleString("es-AR"); $("#c-gnn").textContent = c.gnn.toLocaleString("es-AR"); $("#c-fail").textContent = c.failed_decode.toLocaleString("es-AR");
-    const tot = Math.max(1, c.bp_converged + c.osd + c.gnn + c.failed_decode); $("#bB").style.width = c.bp_converged / tot * 100 + "%"; $("#bO").style.width = c.osd / tot * 100 + "%"; $("#bG").style.width = c.gnn / tot * 100 + "%"; $("#bF").style.width = c.failed_decode / tot * 100 + "%";
-    $("#ler").textContent = m.ler.rate === 0 ? "ninguna todavía" : Live.sci(m.ler.rate);
-    $("#lerr").textContent = `${m.ler.failures} fallas en ${m.counters.shots.toLocaleString("es-AR")} disparos; intervalo de confianza del 95 %: ${Live.sci(m.ler.wilson_lo)} a ${Live.sci(m.ler.wilson_hi)}`;
-    if (m.mode === "circuit") {
-      const nDet = d.rounds.reduce((a, r) => a + (r.z_syndrome || []).length + (r.x_syndrome || []).length, 0);
-      const how = m.decoder === "window" ? "Lo resolvieron ventanas de " + m.window.W + " rondas, confirmando " + m.window.F + " por paso." : "Lo resolvió el horizonte completo.";
-      const res = d.logical_fail ? "<b style=\"color:var(--cochi)\">Quedó una falla lógica.</b>" : "Quedó corregido.";
-      $("#last").innerHTML = nDet ? "<b>" + nDet + "</b> " + (nDet === 1 ? "detector disparado" : "detectores disparados") + " repartidos en <b>" + d.rounds.length + "</b> " + (d.rounds.length === 1 ? "ronda" : "rondas") + ". " + how + " " + res : "Ese lote no tuvo ninguna falla: no hay nada que corregir.";
-      if (nDet) playRounds(d.rounds);
-      return;
-    }
-    const nErr = d.err_x.length + d.err_z.length, nSyn = d.z_syndrome.length + d.x_syndrome.length;
-    $("#last").innerHTML = nErr || nSyn ? `<b>${nErr}</b> ${nErr === 1 ? "qubit con falla" : "qubits con falla"}, <b>${nSyn}</b> ${nSyn === 1 ? "chequeo disparado" : "chequeos disparados"}. ${tierName(d.tier_x)}. ${d.logical_fail ? "<b style='color:var(--cochi)'>Quedó una falla lógica.</b>" : "Quedó corregido."}` : "Ese lote no tuvo ninguna falla: no hay nada que corregir.";
-    if (nErr || nSyn) { Object.assign(live, {t0: performance.now(), zs: d.z_syndrome, xs: d.x_syndrome, errX: d.err_x, errZ: d.err_z, corrX: d.corr_x, corrZ: d.corr_z, fail: d.logical_fail}); dirty = true; }
-  });
-  Live.on("status", s => { $("#dot").className = "dot" + (s === "on" ? " on" : ""); $("#conn").textContent = s === "on" ? "decodificador conectado" : s === "connecting" ? "conectando…" : "sin señal del decodificador"; });
-
-  /* ---------- selección de código ---------- */
-  const codesEl = $("#codes");
-  async function loadCode(name) {
-    const c = await Live.code(name); code = c; serverCode = null; hist.length = 0; Object.assign(live, {zs: [], xs: [], errX: [], errZ: [], corrX: [], corrZ: []});
-    $$("button", codesEl).forEach(b => b.setAttribute("aria-pressed", b.dataset.c === name)); layout(); setSched();
-    const big = name === "BB288"; $$("#modes button[data-m=full], #modes button[data-m=win]").forEach(b => { b.disabled = big; b.title = big ? "BB288: el circuito completo es demasiado pesado para el stream en vivo" : ""; }); if (big && mode !== "cc") applyMode("cc", false);
-    Live.configure(Object.assign({code: name}, wantMsg, mode === "cc" ? {} : {rounds: 6, schedule: "interleaved", W: +$("#selW").value, F: Math.min(+$("#selF").value, +$("#selW").value - 1)})); $("#lcount").textContent = ""; }
-  Live.codes().then(cs => { cs.forEach(c => { const b = document.createElement("button"); b.dataset.c = c.name; b.textContent = c.name; b.setAttribute("aria-pressed", "false"); b.onclick = () => loadCode(c.name); codesEl.appendChild(b); });
-    Live.connect({code: "BB72", mode: "code_capacity", p: .01, rate_hz: 2, batch: 16}); loadCode("BB72"); });
-
-  /* ---------- calendario ---------- */
-  let kind = "interleaved", li = 0, timer = null;
-  const lay = $("#lay");
-  function setSched() { if (!code) return; const L = code.tanner.layers; $("#tI").setAttribute("aria-pressed", kind === "interleaved"); $("#tS").setAttribute("aria-pressed", kind === "sequential");
-    const layers = L[kind]; if (!layers) { layer = null; $("#ltxt").textContent = "Este calendario todavía no está calculado para este código."; return; }
-    lay.max = layers.length - 1; li = Math.min(li, layers.length - 1); lay.value = li; layer = layers[li]; dirty = true;
-    const x = layer.filter(e => e[0] === "X").length;
-    $("#lcount").textContent = `capa ${li + 1} de ${layers.length}`; $("#ltxt").innerHTML = `<b>${layer.length}</b> CNOT a la vez (${x} de chequeos X, ${layer.length - x} de Z). ${kind === "interleaved" ? "Mezcla X y Z en la misma capa." : "Primero todos los X, después todos los Z."} La profundidad pasa de ${code.depth.sequential} a ${code.depth.interleaved} capas.`; }
-  $("#tI").onclick = () => { kind = "interleaved"; setSched(); }; $("#tS").onclick = () => { kind = "sequential"; setSched(); };
-  lay.oninput = () => { li = +lay.value; setSched(); };
-  $("#tP").onclick = () => { playing = !playing; $("#tP").setAttribute("aria-pressed", playing); $("#tP").textContent = playing ? "❚❚" : "▶"; clearInterval(timer); if (playing) timer = setInterval(() => { const n = (code.tanner.layers[kind] || []).length; li = (li + 1) % n; setSched(); }, 900); };
-
-  /* ---------- control del ruido ---------- */
-  const rail = $("#rail"), th = $("#th"), pv = $("#pv"), P0 = -3, P1 = -1; let pf = .5;
-  for (let e = -3; e <= -1; e++) for (let k = 1; k < 10; k++) { const f = (Math.log10(k * Math.pow(10, e)) - P0) / (P1 - P0); if (f > 1) continue; const t = document.createElement("i"); t.className = "tk"; t.style.left = f * 100 + "%"; if (k > 1) t.style.height = "6px", t.style.top = "12px"; rail.appendChild(t); }
-  function setP(f, send) { pf = Math.min(1, Math.max(0, f)); const p = Math.pow(10, P0 + pf * (P1 - P0)); th.style.left = pf * 100 + "%"; pv.textContent = Live.sci(p); rail.setAttribute("aria-valuenow", p.toFixed(4)); if (send) { clearTimeout(setP.t); setP.t = setTimeout(() => Live.configure({p}), 150); } }
-  setP(pf);
-  const ev = e => { const r = rail.getBoundingClientRect(); setP((e.clientX - r.left) / r.width, true); };
-  rail.addEventListener("pointerdown", e => { rail.setPointerCapture(e.pointerId); ev(e); if (!RM) animate(th, {scale: 1.35}, {type: "spring", stiffness: 500, damping: 16}); const mv = x => ev(x), up = () => { rail.removeEventListener("pointermove", mv); rail.removeEventListener("pointerup", up); if (!RM) animate(th, {scale: 1}, {type: "spring", stiffness: 400, damping: 18}); }; rail.addEventListener("pointermove", mv); rail.addEventListener("pointerup", up); });
-  rail.addEventListener("keydown", e => { if (e.key === "ArrowLeft") setP(pf - .04, true); if (e.key === "ArrowRight") setP(pf + .04, true); });
-
-  /* ---------- entrada: el tejido se teje ---------- */
-  if (!RM) {
-    animate(".hd h1", {opacity: [0, 1], transform: ["translateY(14px)", "none"]}, {duration: .9, ease: [.16, 1, .3, 1]});
-    animate(".col > div, .paper > *", {opacity: [0, 1], transform: ["translateY(12px)", "none"]}, {delay: stagger(.07, {startDelay: .25}), duration: .8, ease: [.16, 1, .3, 1]});
-    hover(".codes button", el => { animate(el, {y: -2}, {duration: .2}); return () => animate(el, {y: 0}, {duration: .25}); });
-    press(".sched .tog button", el => { animate(el, {scale: .94}, {duration: .12}); return () => animate(el, {scale: 1}, {type: "spring", stiffness: 500, damping: 18}); });
-  }
-  requestAnimationFrame(frame);
-
-  /* =====================================================  MÁS ABAJO  ===================================================== */
-  const NS = "http://www.w3.org/2000/svg", se = (n, a, p) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); p && p.appendChild(e); return e; };
-  Live.bench().then(b => {
-    const I = b.runs.final_int, S = b.runs.final_seq, svg = $("#plot"), W = 700, H = 470, M = {l: 58, r: 14, t: 16, b: 46};
-    $("#p-th").innerHTML = `Umbral (donde las curvas de distinto tamaño se cruzan): <b>${Live.sci(S.threshold.estimate)}</b> con 12 capas, <b>${Live.sci(I.threshold.estimate)}</b> con 7. Medido en ${(I.total_shots + S.total_shots).toLocaleString("es-AR")} disparos de circuito completo.`;
-    const px = p => M.l + (Math.log10(p) - Math.log10(4e-4)) / (Math.log10(8e-3) - Math.log10(4e-4)) * (W - M.l - M.r), py = v => M.t + (0 - Math.log10(v)) / 5 * (H - M.t - M.b);
-    for (let e = 0; e >= -5; e--) { const y = py(Math.pow(10, e)); se("line", {x1: M.l, x2: W - M.r, y1: y, y2: y, stroke: C.tinta, opacity: .14}, svg); const t = se("text", {x: M.l - 8, y: y + 4, "text-anchor": "end", style: "font:400 12px DM Mono;fill:#5b5a52"}, svg); t.textContent = "1e" + e; }
-    [5e-4, 1e-3, 2e-3, 4e-3].forEach(p => { const t = se("text", {x: px(p), y: H - 18, "text-anchor": "middle", style: "font:400 12px DM Mono;fill:#5b5a52"}, svg); t.textContent = Live.sci(p); });
-    se("line", {x1: px(5e-4), y1: py(5e-4), x2: px(8e-3), y2: py(8e-3), stroke: C.tinta, "stroke-dasharray": "3 5", opacity: .5}, svg);
-    const cols = {BB72: C.tinta, BB90: C.anil, BB108: "#7a5c3a", BB144: C.cochi};
-    const draw = (run, dash) => ["BB72", "BB90", "BB108", "BB144"].forEach(cn => { const pts = run.points.filter(p => p.code === cn && p.p_logical > 0).sort((a, b) => a.p - b.p); if (pts.length < 2) return;
-      se("path", {d: pts.map((p, i) => (i ? "L" : "M") + px(p.p).toFixed(1) + " " + py(p.p_logical).toFixed(1)).join(" "), fill: "none", stroke: cols[cn], "stroke-width": 2.2, "stroke-dasharray": dash || "none"}, svg);
-      pts.forEach(p => { const c = se("circle", {cx: px(p.p), cy: py(p.p_logical), r: 3.4, fill: dash ? C.lino : cols[cn], stroke: cols[cn], "stroke-width": 1.4}, svg); const t = se("title", {}, c); t.textContent = `${cn}, ${dash ? "12" : "7"} capas, p=${Live.sci(p.p)}: ${Live.sci(p.p_logical)} (${p.failures} fallas en ${p.shots} disparos)`; }); });
-    draw(S, "5 5"); draw(I, null);
-    Object.entries(cols).forEach(([k, c], i) => { se("rect", {x: M.l + 12 + i * 86, y: M.t + 6, width: 11, height: 11, fill: c}, svg); const t = se("text", {x: M.l + 28 + i * 86, y: M.t + 16, style: "font:500 12px DM Mono;fill:#16204a"}, svg); t.textContent = k; });
-    $("#honest").innerHTML = "Los números salen de las ejecuciones guardadas y del decodificador que está corriendo ahora mismo en esta máquina (Ryzen 5 5600G, AVX2). <b>Lo único que baja de 1 µs es el núcleo BP, por disparo, en lotes de 16 y sobre la matriz de una ronda.</b> El decodificador completo con OSD sobre el circuito entero tarda cientos de microsegundos a milisegundos. Cero fallas observadas significa cero en los disparos que se corrieron, no cero verdadero.";
-    $("#p-n7").textContent = "7";
-  }).catch(() => {});
-  fetch("/api/v1/compile", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({code: "BB72", schedule: "interleaved", rounds: 3, p: 1e-3})}).then(r => r.json()).then(j => {
-    $("#q-t").textContent = `BB72, tres rondas: ${j.stats.qasm_lines} líneas de OpenQASM 3.0, ${j.stats.cnot_layers} capas de CNOT por ronda, ${j.stats.cnot_total} CNOT en total. Compilado ahora, en ${Math.round(j.elapsed_ms)} ms.`; $("#qasm").textContent = j.qasm; }).catch(e => { $("#q-t").textContent = "No pude compilar el circuito: " + e.message; });
-})();
-</script>
+<script src="/ui/live.js?v=10"></script>
+<script src="/ui/tars.js?v=10"></script>
 </body>
 </html>

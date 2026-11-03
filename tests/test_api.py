@@ -132,12 +132,13 @@ def test_ws_circuit_mode_and_bad_code():
 def test_ui_assets_served_and_self_contained():
     import re
     html = client.get("/").text
-    assert "Telar" in html and "/ui/live.js" in html
-    for path in ("live.js", "vendor/motion.js", "fonts/bricolage-grotesque.woff2", "fonts/dm-mono-normal-400.woff2"):
+    assert "Tars" in html and "Telar" not in html and "/ui/live.js" in html and "/ui/tars.js" in html
+    for path in ("live.js", "tars.js", "tars.css", "fonts/familjen-grotesk.woff2", "fonts/martian-mono.woff2"):
         r = client.get(f"/ui/{path}")
         assert r.status_code == 200 and len(r.content) > 1000, path
-    live = client.get("/ui/live.js").text
-    assert not re.search(r"https?://(?!localhost)", live), "live.js references an external URL"
+    for name in ("live.js", "tars.js", "tars.css"):
+        body = client.get(f"/ui/{name}").text
+        assert not re.search(r"https?://(?!localhost|www\.w3\.org/2000/svg)", body), f"{name} references an external URL"   # el espacio de nombres SVG no es una descarga
     assert not re.search(r"<(script|link)[^>]+(https?:)?//(?!localhost)", html)
 
 

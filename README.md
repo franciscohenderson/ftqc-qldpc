@@ -13,7 +13,7 @@ Exact code distances, a depth-7 interleaved CNOT schedule, a C++20 AVX2 SIMD BP 
 
 <p align="center"><img src="docs/assets/live_hud.png" alt="Live console: string-art tanner graph, latency readouts, strip-chart paper" width="100%"></p>
 
-<p align="center"><img src="docs/assets/el_telar_live_demo.gif" alt="Animated demo: live decoding, the 7 layers of the interleaved schedule, full-horizon and sliding-window modes" width="100%"></p>
+<p align="center"><img src="docs/assets/tars_live_demo.gif" alt="Animated demo: live decoding, the 7 layers of the interleaved schedule, full-horizon and sliding-window modes" width="100%"></p>
 
 > **What this is, in one honest paragraph.** A reproducible research codebase: it certifies code distances by MILP, compiles a 7-layer interleaved syndrome-extraction schedule (12 layers if scheduled sequentially), simulates circuit-level memory experiments with Stim, and decodes them with a fixed-point `int16` SIMD min-sum BP kernel plus bit-packed OSD-CS. **Only the BP kernel is sub-microsecond** (0.26-0.62 us per shot, amortized over a 16-shot SIMD pass, per-round matrix); full circuit-level decoding with OSD costs hundreds of microseconds, and a sliding-window decoder lowers the wait after the last round by about 15x (BB72) and 6.6x (BB144) without reaching sub-microsecond. Everything below is measured on one consumer desktop CPU; see [Limitations](#honest-limitations).
 
@@ -87,7 +87,7 @@ flowchart LR
 
 ## License
 
-Copyright 2026 Francisco. Licensed under the [Apache License, Version 2.0](LICENSE); see also [NOTICE](NOTICE) for the third-party components bundled in `ui/` (Motion, Bricolage Grotesque, DM Mono) and used at build time only (KaTeX, playwright-core).
+Copyright 2026 Francisco. Licensed under the [Apache License, Version 2.0](LICENSE); see also [NOTICE](NOTICE) for the third-party components bundled in `ui/` (Familjen Grotesk, Martian Mono) and used at build time only (KaTeX, playwright-core).
 
 ---
 
@@ -227,7 +227,7 @@ scripts\launch_dashboard.ps1 -Foreground -NoBrowser
 ```
 
 * `src/api/` - FastAPI + WebSocket server: `GET /api/v1/codes`, `POST /api/v1/compile`, `GET /api/v1/benchmarks` (reads `results/final_int` and `results/final_seq`), `WS /api/v1/stream/decode` (live Stim sampling -> C++ SIMD BP / OSD-CS / INT8 GNN fallback -> telemetry). Contract: `docs/API_CONTRACT.md`; interactive docs at `/docs`.
-* `ui/` - the live console, **Telar** (vanilla JS + canvas, no CDN, one screen with a scroll below): string-art Tanner graph, live latency readouts, strip-chart record, schedule scrubber, a decoding-mode switch (code only / full-horizon circuit / sliding window), measured threshold curves and the compiled OpenQASM 3.0.
+* `ui/` - the live console, **Tars** (vanilla JS + canvas, no CDN, no framework): all five codes (BB72 to BB288) decoding side by side with one live channel per code, then a full-screen view of any one of them with a decoding-mode switch (code only / full-horizon circuit / sliding window), noise control, schedule scrubber and live annotations on the failing qubits; below, the measured threshold curves, the 12-to-7 layer comparison and the compiled OpenQASM 3.0.
 * `docs/WHITEPAPER.md` and `docs/COMMERCIAL_PITCH.md` are drafted from `docs/FACTS.md`, which `scripts/make_facts.py` regenerates from the stored results; pricing, market and traction statements in the pitch are labelled hypotheses. `scripts/precompute_assets.py` builds the interleaved schedules (including BB288, depth 7) and the small INT8 GNN models used by the live stream.
 * Live-stream latency caveat: the HUD shows three separate numbers (amortized BP kernel, single-shot BP kernel, total BP+OSD/GNN) because only the first is reliably below 1 us.
 

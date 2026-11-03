@@ -1,5 +1,5 @@
-Tipografías autoalojadas, todas bajo la SIL Open Font License 1.1 (https://openfontlicense.org):
-- Syne (variable, wght 400-800) · Copyright The Syne Project Authors · https://gitlab.com/bonjour-monde/fonderie/syne-typeface
-- Hanken Grotesk (variable) · Copyright The Hanken Grotesk Project Authors · https://github.com/marcologous/hanken-grotesk
-- DM Mono (400 y 500) · Copyright The DM Mono Project Authors · https://github.com/googlefonts/dm-mono
+Tipografías autoalojadas, ambas bajo la SIL Open Font License 1.1 (https://openfontlicense.org), tal como las distribuye Google Fonts:
+- Familjen Grotesk (variable, wght 400-700) · https://fonts.google.com/specimen/Familjen+Grotesk
+- Martian Mono (variable, wght 300-800) · https://fonts.google.com/specimen/Martian+Mono
+Los derechos de autor siguen siendo de los autores de cada proyecto tipográfico.
 Se pueden usar, estudiar, modificar y redistribuir libremente; no se pueden vender por sí solas. Conservar este aviso al redistribuirlas.
