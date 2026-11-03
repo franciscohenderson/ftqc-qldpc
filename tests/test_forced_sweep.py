@@ -12,7 +12,7 @@ fs = pytest.importorskip("run_forced_sweep")
 
 @pytest.mark.skipif(not (ROOT / "results" / "circuit_distance.json").exists(), reason="needs the saved witnesses")
 def test_forcing_a_known_fault_is_feasible_at_its_weight_and_infeasible_below():
-    runs = {r["schedule"]: r for r in json.loads((ROOT / "results" / "circuit_distance.json").read_text())["runs"] if r["code"] == "BB72" and r["rounds"] == 6}
+    runs = {r["schedule"]: r for r in json.loads((ROOT / "results" / "circuit_distance.json").read_text())["runs"] if r["code"] == "BB72" and r["rounds"] == 6 and r["basis"] == "Z"}
     wit = runs["sequential"]["witness"]                       # certified d_circ = 4
     j0 = min(wit)
     fs._init(("BB72", "sequential", 6, "Z", 4))

@@ -3,7 +3,7 @@ import json, sys
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]; sys.path.insert(0, str(ROOT / "src")); sys.path.insert(0, str(ROOT / "scripts"))
 import run_forced_sweep as fs
-runs = {(r["schedule"]): r for r in json.load(open(ROOT / "results" / "circuit_distance.json"))["runs"] if r["code"] == "BB72" and r["rounds"] == 6}
+runs = {(r["schedule"]): r for r in json.load(open(ROOT / "results" / "circuit_distance.json"))["runs"] if r["code"] == "BB72" and r["rounds"] == 6 and r["basis"] == "Z"}
 ok = True
 for sched, w in (("sequential", 4), ("interleaved", 5)):
     wit = runs[sched]["witness"]; j0 = min(wit)

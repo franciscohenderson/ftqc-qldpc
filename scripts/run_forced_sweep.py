@@ -63,7 +63,11 @@ def _solve(task):
     ub[:j] = 0; lb[j] = 1                               # exclude smaller indices, force j
     t0 = time.perf_counter()
     r = milp(np.zeros(n), constraints=_S["cons"], integrality=np.ones(n), bounds=Bounds(lb, ub), options={"time_limit": float(tlim)})
-    out = {"j": j, "status": int(r.status), "seconds": round(time.perf_counter() - t0, 1)}
+    retried = False
+    if r.status == 4:                                   # HiGHS "solve error" (seen in its presolve): ask again without presolve, record that we did
+        retried = True
+        r = milp(np.zeros(n), constraints=_S["cons"], integrality=np.ones(n), bounds=Bounds(lb, ub), options={"time_limit": float(tlim), "presolve": False})
+    out = {"j": j, "status": int(r.status), "seconds": round(time.perf_counter() - t0, 1), **({"retried_without_presolve": True} if retried else {})}
     if r.x is not None:
         out["witness"] = np.flatnonzero(np.round(r.x[:m]) > 0.5).tolist()
     return out

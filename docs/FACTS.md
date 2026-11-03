@@ -311,7 +311,9 @@ d_circ = fewest DEM mechanisms with zero detector syndrome that flip a logical o
 | BB72 | Z | 7 | 6 | 4 | 5 | - | False | 3903 | 300 |
 | BB72 | X | 7 | 6 | 4 | 5 | - | False | 4149 | 300 |
 | BB90 | Z | 12 | 6 | - | 2 | 9 | False | 300 | 300.0 |
+| BB90 | Z | 12 | 6 | 4 | 5 | - | False | 3943 | 300 |
 | BB90 | Z | 7 | 6 | - | 2 | 12 | False | 300 | 300.0 |
+| BB90 | Z | 7 | 6 | 4 | 5 | - | False | 5300 | 300 |
 
 ## Zero-cost logical gates from translation automorphisms (scripts/run_logical_gates.py)
 

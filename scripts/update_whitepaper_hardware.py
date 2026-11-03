@@ -66,6 +66,12 @@ def distance_block() -> tuple[str, dict]:
         if xe and xd and xd.get("proved_no_fault_up_to") is not None:
             t.append(f"The same covering sweep in the $X$ basis ({xd['seconds']:.0f} s) also proves that no undetected logical fault of weight $\\le {xd['max_weight']}$ exists, and the direct solver found a verified fault of weight {xe['d_upper']}, "
                      + (f"so $d_\\mathrm{{circ}} = {xe['d_upper']}$ exactly in both bases for the interleaved schedule." if xd['d_lower'] == xe['d_upper'] else f"so $d_\\mathrm{{circ}} \\in [{xd['d_lower']}, {xe['d_upper']}]$ in the $X$ basis."))
+        b90 = {r["schedule"]: r for r in dec if r["code"] == "BB90" and r.get("basis", "Z") == "Z" and r.get("proved_no_fault_up_to") is not None}
+        if len(b90) == 2:
+            u = {r["schedule"]: r for r in runs if r["code"] == "BB90" and r.get("basis", "Z") == "Z"}
+            ub = ", ".join(f"{u[s]['cnot_layers']} layers $\\le {u[s]['d_upper']}$" for s in ("sequential", "interleaved") if s in u)
+            t.append(f"We ran the same covering sweep on BB90 (code distance 10, 6 rounds, $Z$ basis). Neither schedule has an undetected logical fault of weight $\\le {b90['interleaved']['max_weight']}$, so $d_\\mathrm{{circ}} \\ge {b90['interleaved']['d_lower']}$ for both ({b90['sequential']['seconds']:.0f} s and {b90['interleaved']['seconds']:.0f} s). "
+                     f"At this weight the test therefore **does not separate the two schedules for BB90**, unlike BB72; we make no claim that the 7-layer schedule is better there. The upper bounds from the time-limited solver ({ub}) are far from tight and should not be read as the distance.")
         sx = next((r for r in runs if r["code"] == "BB72" and r["schedule"] == "sequential" and r["rounds"] == 6 and r.get("basis") == "X"), None)
         if sx and sx.get("certified"):
             t.append(f"For the sequential schedule the $X$ basis gives $d_\\mathrm{{circ}} = {sx['d_lower']}$ as well (certified by HiGHS in {sx['seconds']:.0f} s). "

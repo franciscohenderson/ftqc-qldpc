@@ -33,6 +33,40 @@
    "status": "covering sweep: 2232 of 2232 subproblems infeasible, 0 unresolved (6 workers; per-subproblem limit 300 s)",
    "method": "forced_sweep",
    "n_mechanisms": 2232
+  },
+  {
+   "code": "BB90",
+   "schedule": "interleaved",
+   "cnot_layers": 7,
+   "rounds": 6,
+   "basis": "Z",
+   "max_weight": 4,
+   "d_lower": 5,
+   "d_upper": null,
+   "certified": false,
+   "proved_no_fault_up_to": 4,
+   "seconds": 5300.0,
+   "time_limit": 300,
+   "status": "covering sweep: 2790 of 2790 subproblems infeasible, 0 unresolved (6 workers; per-subproblem limit 300 s)",
+   "method": "forced_sweep",
+   "n_mechanisms": 2790
+  },
+  {
+   "code": "BB90",
+   "schedule": "sequential",
+   "cnot_layers": 12,
+   "rounds": 6,
+   "basis": "Z",
+   "max_weight": 4,
+   "d_lower": 5,
+   "d_upper": null,
+   "certified": false,
+   "proved_no_fault_up_to": 4,
+   "seconds": 3943.1,
+   "time_limit": 300,
+   "status": "covering sweep: 2790 of 2790 subproblems infeasible, 0 unresolved (6 workers; per-subproblem limit 300 s)",
+   "method": "forced_sweep",
+   "n_mechanisms": 2790
   }
  ]
 }
