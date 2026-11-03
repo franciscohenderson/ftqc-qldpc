@@ -24,8 +24,10 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "dist" / "outreach_ready"
 
 
-def gmail(to: str, subject: str, body: str) -> str:
-    return f"https://mail.google.com/mail/?view=cm&fs=1&to={quote(to)}&su={quote(subject)}&body={quote(body)}"
+def gmail(to: str, subject: str, body: str, sender: str = "") -> str:
+    """Gmail compose URL; `sender` (authuser) makes Gmail open the draft from that signed-in account."""
+    acct = f"&authuser={quote(sender)}" if sender else ""
+    return f"https://mail.google.com/mail/?view=cm&fs=1{acct}&to={quote(to)}&su={quote(subject)}&body={quote(body)}"
 
 
 def mailto(to: str, subject: str, body: str) -> str:
@@ -93,7 +95,7 @@ def build(manifest: dict, answers: dict, files: dict[str, bool]) -> str:
         data[k + "s"], data[k + "b"] = e["subject"], e["body"]
         to = e["to"]
         to_html = f'<span class="to"><b>{esc(to)}</b></span>' if to else '<span class="missing">no verified public address: use the official route below</span>'
-        row = (f'<a class="btn" target="_blank" rel="noopener" href="{esc(gmail(to, e["subject"], e["body"]))}">Open Gmail draft</a>'
+        row = (f'<a class="btn" target="_blank" rel="noopener" href="{esc(gmail(to, e["subject"], e["body"], manifest.get("sender", "")))}">Open Gmail draft</a>'
                f'<a class="btn alt" href="{esc(mailto(to, e["subject"], e["body"]))}">mailto</a>'
                f'<button class="alt" data-copy="{k}s">Copy subject</button><button class="alt" data-copy="{k}b">Copy body</button>'
                f'<a class="btn alt" target="_blank" rel="noopener" href="{esc(e["route"])}">Official contact route</a>')
