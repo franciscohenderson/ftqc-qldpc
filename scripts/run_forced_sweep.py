@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT / "src"))
 _S: dict = {}
 
 
-def _build(code_name: str, schedule: str, rounds: int, basis: str, W: int):
+def _build(code_name: str, schedule: str, rounds: int, basis: str, W: int, sym: bool = False):
     from algebra.circuit_distance import dem_columns
     from api.services import code_of, get_layers
     from circuits.builder import build_memory_experiment
@@ -49,7 +49,12 @@ def _build(code_name: str, schedule: str, rounds: int, basis: str, W: int):
     cons = [LinearConstraint(A1, 0, 0), LinearConstraint(A2, 0, 0), LinearConstraint(A3, 1, np.inf), LinearConstraint(sp.csr_matrix(cw), 0, W)]
     ub0 = np.concatenate([np.ones(m), degh // 2, dego // 2, np.ones(no)]).astype(float)
     undetectable = [j for j, (kd, ko) in enumerate(cols) if not kd and ko]
-    return {"m": m, "n": n, "cons": cons, "ub0": ub0, "undetectable": undetectable}
+    label = reps = None
+    if sym:                                             # orbits of the verified translation symmetry (raises if it is not a symmetry)
+        from algebra.circuit_symmetry import orbits
+        o = orbits(code, dem, basis)
+        label, reps = o["label"], o["representatives"]
+    return {"m": m, "n": n, "cons": cons, "ub0": ub0, "undetectable": undetectable, "label": label, "reps": reps}
 
 
 def _init(args):
@@ -60,7 +65,11 @@ def _solve(task):
     j, tlim = task
     n, m = _S["n"], _S["m"]
     lb = np.zeros(n); ub = _S["ub0"].copy()
-    ub[:j] = 0; lb[j] = 1                               # exclude smaller indices, force j
+    if _S["label"] is not None:
+        ub[:m][_S["label"] < _S["label"][j]] = 0         # exclude every mechanism of an earlier orbit; j is its orbit's representative
+    else:
+        ub[:j] = 0                                       # exclude smaller indices
+    lb[j] = 1                                            # force j
     t0 = time.perf_counter()
     r = milp(np.zeros(n), constraints=_S["cons"], integrality=np.ones(n), bounds=Bounds(lb, ub), options={"time_limit": float(tlim)})
     retried = False
@@ -79,9 +88,10 @@ def main():
     ap.add_argument("--rounds", type=int, default=6); ap.add_argument("--basis", default="Z")
     ap.add_argument("--weight", type=int, default=4); ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--task-limit", type=float, default=300.0)
+    ap.add_argument("--symmetry", action="store_true", help="one subproblem per orbit of the verified translation symmetry")
     a = ap.parse_args()
-    args = (a.code, a.schedule, a.rounds, a.basis, a.weight)
-    out_path = ROOT / "results" / f"forced_sweep_{a.code}_{a.schedule}_{a.basis}_r{a.rounds}_w{a.weight}.json"
+    args = (a.code, a.schedule, a.rounds, a.basis, a.weight, a.symmetry)
+    out_path = ROOT / "results" / f"forced_sweep_{a.code}_{a.schedule}_{a.basis}_r{a.rounds}_w{a.weight}{"_sym" if a.symmetry else ""}.json"
     info = _build(*args)
     m = info["m"]
     data = json.loads(out_path.read_text()) if out_path.exists() else {"code": a.code, "schedule": a.schedule, "rounds": a.rounds, "basis": a.basis,
@@ -91,7 +101,8 @@ def main():
             raise SystemExit(f"progress file mismatch on {k}: {data[k]!r} != {v!r}")
     if info["undetectable"]:
         print("an undetectable logical mechanism exists: d_circ = 1"); return
-    todo = [j for j in range(m) if str(j) not in data["done"] or data["done"][str(j)]["status"] not in (2, 0)]
+    universe = info["reps"] if a.symmetry else list(range(m))
+    todo = [j for j in universe if str(j) not in data["done"] or data["done"][str(j)]["status"] not in (2, 0)]
     print(f"{a.code} {a.schedule}: {m} mechanisms, {len(data['done'])} already done, {len(todo)} to go, weight <= {a.weight}", flush=True)
     t0 = time.perf_counter(); found = []
     with ProcessPoolExecutor(a.workers, initializer=_init, initargs=(args,)) as ex:
@@ -104,7 +115,7 @@ def main():
                 print(f"  {k + 1}/{len(todo)} subproblems, {time.perf_counter() - t0:.0f}s elapsed, found {len(found)}, latest j={r['j']} status {r['status']} {r['seconds']}s", flush=True)
     st = [v["status"] for v in data["done"].values()]
     n_inf, n_feas, n_other = st.count(2), st.count(0), len(st) - st.count(2) - st.count(0)
-    complete = len(st) == m
+    complete = len(st) == len(universe)
     data["summary"] = {"complete": complete, "infeasible": n_inf, "feasible": n_feas, "unresolved": n_other,
                        "claim": (f"no undetected logical fault of weight <= {a.weight}: d_circ >= {a.weight + 1}" if complete and n_feas == 0 and n_other == 0 else
                                  f"found a fault of weight <= {a.weight}" if n_feas else "INCOMPLETE: no claim"),

@@ -25,6 +25,7 @@ def load(name):
 
 def distance_block() -> tuple[str, dict]:
     runs = (load("circuit_distance.json") or {"runs": []})["runs"]
+    code_d = {"BB72": 6, "BB90": 10, "BB108": 10, "BB144": 12}      # published code distances, certified by the MILP of Section 3 (BB288 not used here)
     dec = (load("circuit_distance_decision.json") or {"runs": []})["runs"]
     pick = lambda code, sched: next((r for r in runs if r["code"] == code and r["schedule"] == sched and r["rounds"] == 6), None)   # noqa: E731
     seq, ent = pick("BB72", "sequential"), pick("BB72", "interleaved")
@@ -72,6 +73,20 @@ def distance_block() -> tuple[str, dict]:
             ub = ", ".join(f"{u[s]['cnot_layers']} layers $\\le {u[s]['d_upper']}$" for s in ("sequential", "interleaved") if s in u)
             t.append(f"We ran the same covering sweep on BB90 (code distance 10, 6 rounds, $Z$ basis). Neither schedule has an undetected logical fault of weight $\\le {b90['interleaved']['max_weight']}$, so $d_\\mathrm{{circ}} \\ge {b90['interleaved']['d_lower']}$ for both ({b90['sequential']['seconds']:.0f} s and {b90['interleaved']['seconds']:.0f} s). "
                      f"At this weight the test therefore **does not separate the two schedules for BB90**, unlike BB72; we make no claim that the 7-layer schedule is better there. The upper bounds from the time-limited solver ({ub}) are far from tight and should not be read as the distance.")
+        sym = [r for r in dec if r.get("method") == "forced_sweep_symmetry"]
+        if sym:
+            best = {}
+            for r in sym:
+                if r["code"] not in best or r["max_weight"] > best[r["code"]]["max_weight"]:
+                    best[r["code"]] = r
+            full = {r["code"]: r for r in dec if r["schedule"] == "interleaved" and r.get("basis", "Z") == "Z" and r.get("method") == "forced_sweep"}
+            for c, r in full.items():
+                if c not in best or r["max_weight"] > best[c]["max_weight"]:
+                    best[c] = r
+            lines = "; ".join(f"{c} (code distance {code_d[c]}): $d_\\mathrm{{circ}} \\ge {best[c]['d_lower']}$ (no fault of weight $\\le {best[c]['max_weight']}$)" for c in sorted(best, key=lambda x: int(x[2:])) if c in code_d)
+            t.append("**Symmetry reduction.** The 7-layer schedule is invariant under the $\\ell m$ translations of the torus; we verify this from the DEM rather than assuming it (`src/algebra/circuit_symmetry.py`): every mechanism has a unique image (a mechanism is identified by the detectors it fires), the map is a bijection, and the action on the observables has the form $k_o' = U k_o \\oplus L k_d$ with $U$ invertible, so a zero-syndrome fault set stays a logical fault after translation. "
+                     "The mechanisms then fall into 62 orbits of equal size, and the covering sweep needs one subproblem per orbit (force the orbit's representative, exclude all earlier orbits). On BB72 this reproduces the full sweep's verdict in 67 s instead of 3903 s, and at weight 5 it finds feasible faults, as it must. The 12-layer schedule is **not** translation invariant (the check refuses it), so its sweeps use no symmetry and are limited to weight 4. "
+                     f"Proved lower bounds for the 7-layer schedule, $Z$ basis, 6 rounds: {lines}. These are lower bounds from a proof; the upper bounds from the time-limited solver remain loose.")
         sx = next((r for r in runs if r["code"] == "BB72" and r["schedule"] == "sequential" and r["rounds"] == 6 and r.get("basis") == "X"), None)
         if sx and sx.get("certified"):
             t.append(f"For the sequential schedule the $X$ basis gives $d_\\mathrm{{circ}} = {sx['d_lower']}$ as well (certified by HiGHS in {sx['seconds']:.0f} s). "

@@ -491,8 +491,12 @@ The circuit-level distance $d_\mathrm{circ}$ is the smallest number of mechanism
 |---|---|---|---|---|---|---|---|---|
 | BB108 | Z | 12 | - | 2 | 14 | no | 300 | 300 |
 | BB108 | Z | 7 | - | 2 | 132 | no | 300 | 300 |
+| BB108 | Z | 7 | 4 | 5 | - | no | 575 | 300 |
+| BB108 | Z | 7 | 5 | 6 | - | no | 613 | 300 |
 | BB144 | Z | 12 | - | 2 | 32 | no | 300 | 300 |
 | BB144 | Z | 7 | - | 2 | 14 | no | 301 | 300 |
+| BB144 | Z | 7 | 4 | 5 | - | no | 822 | 300 |
+| BB144 | Z | 7 | 5 | 6 | - | no | 1219 | 300 |
 | BB72 | Z | 12 | - | 4 | 4 | yes | 233 | 900 |
 | BB72 | X | 12 | - | 4 | 4 | yes | 153 | 600 |
 | BB72 | Z | 7 | - | 3 | 5 | no | 900 | 900 |
@@ -503,13 +507,15 @@ The circuit-level distance $d_\mathrm{circ}$ is the smallest number of mechanism
 | BB90 | Z | 12 | 4 | 5 | - | no | 3943 | 300 |
 | BB90 | Z | 7 | - | 2 | 12 | no | 300 | 300 |
 | BB90 | Z | 7 | 4 | 5 | - | no | 5300 | 300 |
+| BB90 | Z | 7 | 5 | 6 | - | no | 376 | 300 |
 
 *Table 9A.1: Circuit-level distance bounds (from `results/circuit_distance*.json`).*
 
 For BB72 (code distance 6) the sequential 12-layer schedule has $d_\mathrm{circ} = 4$, **certified** by HiGHS in 233 s: hook-type faults propagating through the CNOT chains reduce the effective distance below the code distance. For the interleaved 7-layer schedule the solver could only bound $d_\mathrm{circ}$ in $[3, 5]$ within 900 s, with a verified undetected logical fault of weight 5.
 A direct decision query (is there an undetected logical fault of weight $\le 4$?) did not terminate in 1500 s. We therefore split it into a covering sweep (`scripts/run_forced_sweep.py`): subproblem $j$ forces mechanism $j$ into the fault and excludes every mechanism with a smaller index, so a fault of weight $\le 4$, if one existed, would be found in exactly one subproblem (the one of its smallest index). Forcing one mechanism makes each subproblem easy (seconds). All 2232 subproblems were infeasible and none was unresolved (3903 s on 6 workers), so there is no such fault and $d_\mathrm{circ} \ge 5$ for the interleaved schedule; together with the verified weight-5 witness this gives $d_\mathrm{circ} = 5$ exactly. The method was validated on the sequential schedule (known weight 4: feasible at $W = 4$, infeasible at $W = 3$) and on the interleaved weight-5 witness (feasible at 5, infeasible at 4); `scripts/validate_sweep.py`.
 The same covering sweep in the $X$ basis (4149 s) also proves that no undetected logical fault of weight $\le 4$ exists, and the direct solver found a verified fault of weight 5, so $d_\mathrm{circ} = 5$ exactly in both bases for the interleaved schedule.
-We ran the same covering sweep on BB90 (code distance 10, 6 rounds, $Z$ basis). Neither schedule has an undetected logical fault of weight $\le 4$, so $d_\mathrm{circ} \ge 5$ for both (3943 s and 5300 s). At this weight the test therefore **does not separate the two schedules for BB90**, unlike BB72; we make no claim that the 7-layer schedule is better there. The upper bounds from the time-limited solver (12 layers $\le 9$, 7 layers $\le 12$) are far from tight and should not be read as the distance.
+We ran the same covering sweep on BB90 (code distance 10, 6 rounds, $Z$ basis). Neither schedule has an undetected logical fault of weight $\le 5$, so $d_\mathrm{circ} \ge 6$ for both (3943 s and 376 s). At this weight the test therefore **does not separate the two schedules for BB90**, unlike BB72; we make no claim that the 7-layer schedule is better there. The upper bounds from the time-limited solver (12 layers $\le 9$, 7 layers $\le 12$) are far from tight and should not be read as the distance.
+**Symmetry reduction.** The 7-layer schedule is invariant under the $\ell m$ translations of the torus; we verify this from the DEM rather than assuming it (`src/algebra/circuit_symmetry.py`): every mechanism has a unique image (a mechanism is identified by the detectors it fires), the map is a bijection, and the action on the observables has the form $k_o' = U k_o \oplus L k_d$ with $U$ invertible, so a zero-syndrome fault set stays a logical fault after translation. The mechanisms then fall into 62 orbits of equal size, and the covering sweep needs one subproblem per orbit (force the orbit's representative, exclude all earlier orbits). On BB72 this reproduces the full sweep's verdict in 67 s instead of 3903 s, and at weight 5 it finds feasible faults, as it must. The 12-layer schedule is **not** translation invariant (the check refuses it), so its sweeps use no symmetry and are limited to weight 4. Proved lower bounds for the 7-layer schedule, $Z$ basis, 6 rounds: BB72 (code distance 6): $d_\mathrm{circ} \ge 5$ (no fault of weight $\le 4$); BB90 (code distance 10): $d_\mathrm{circ} \ge 6$ (no fault of weight $\le 5$); BB108 (code distance 10): $d_\mathrm{circ} \ge 6$ (no fault of weight $\le 5$); BB144 (code distance 12): $d_\mathrm{circ} \ge 6$ (no fault of weight $\le 5$). These are lower bounds from a proof; the upper bounds from the time-limited solver remain loose.
 For the sequential schedule the $X$ basis gives $d_\mathrm{circ} = 4$ as well (certified by HiGHS in 153 s). In summary, for BB72 with 6 rounds and this noise model, in both bases the 12-layer schedule has $d_\mathrm{circ} = 4$ and the 7-layer schedule has $d_\mathrm{circ} = 5$.
 This is a measurement of two schedules on one code and one noise model; it does not show that the interleaved schedule preserves or loses distance relative to the sequential one unless the bounds above separate. For BB90, BB108 and BB144 the time-limited bounds are wide (see the table) and carry no conclusion; with only 6 rounds the time-like distance also limits $d_\mathrm{circ}$ below the code distance of the larger codes.
 
