@@ -1,0 +1,7 @@
+{
+  "name": "ftqc-whitepaper-pdf",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Renders docs/WHITEPAPER.md to a two-column PDF (KaTeX math, headless Chrome print)",
+  "dependencies": { "katex": "0.16.11", "playwright-core": "1.49.1" }
+}

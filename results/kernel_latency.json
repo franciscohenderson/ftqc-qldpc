@@ -1,0 +1,116 @@
+{
+  "BB72@0.001": {
+    "matrix": [
+      36,
+      72
+    ],
+    "lanes": 16,
+    "shots": 4000,
+    "batch_amortized_ns": {
+      "p50": 268.0,
+      "p95": 312.0,
+      "p99": 418.0
+    },
+    "single_shot_bp_ns": {
+      "p50": 600.0,
+      "p95": 1200.0,
+      "p99": 1300.0
+    },
+    "bp_converged_fraction": 1.0
+  },
+  "BB72@0.003": {
+    "matrix": [
+      36,
+      72
+    ],
+    "lanes": 16,
+    "shots": 4000,
+    "batch_amortized_ns": {
+      "p50": 268.0,
+      "p95": 312.0,
+      "p99": 312.0
+    },
+    "single_shot_bp_ns": {
+      "p50": 600.0,
+      "p95": 1300.0,
+      "p99": 1300.0
+    },
+    "bp_converged_fraction": 1.0
+  },
+  "BB72@0.01": {
+    "matrix": [
+      36,
+      72
+    ],
+    "lanes": 16,
+    "shots": 4000,
+    "batch_amortized_ns": {
+      "p50": 356.0,
+      "p95": 556.0,
+      "p99": 956.0
+    },
+    "single_shot_bp_ns": {
+      "p50": 1200.0,
+      "p95": 2300.0,
+      "p99": 3500.0
+    },
+    "bp_converged_fraction": 0.99875
+  },
+  "BB144@0.001": {
+    "matrix": [
+      72,
+      144
+    ],
+    "lanes": 16,
+    "shots": 4000,
+    "batch_amortized_ns": {
+      "p50": 556.0,
+      "p95": 606.0,
+      "p99": 743.0
+    },
+    "single_shot_bp_ns": {
+      "p50": 1200.0,
+      "p95": 2700.0,
+      "p99": 2800.0
+    },
+    "bp_converged_fraction": 1.0
+  },
+  "BB144@0.003": {
+    "matrix": [
+      72,
+      144
+    ],
+    "lanes": 16,
+    "shots": 4000,
+    "batch_amortized_ns": {
+      "p50": 537.0,
+      "p95": 718.0,
+      "p99": 737.0
+    },
+    "single_shot_bp_ns": {
+      "p50": 1200.0,
+      "p95": 2500.0,
+      "p99": 3700.0
+    },
+    "bp_converged_fraction": 1.0
+  },
+  "BB144@0.01": {
+    "matrix": [
+      72,
+      144
+    ],
+    "lanes": 16,
+    "shots": 4000,
+    "batch_amortized_ns": {
+      "p50": 618.0,
+      "p95": 850.0,
+      "p99": 1237.0
+    },
+    "single_shot_bp_ns": {
+      "p50": 2400.0,
+      "p95": 4200.0,
+      "p99": 6100.0
+    },
+    "bp_converged_fraction": 0.99925
+  }
+}

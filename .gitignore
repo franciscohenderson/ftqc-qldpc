@@ -1,0 +1,27 @@
+# environments and caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+
+# build outputs (rebuilt by scripts/setup.ps1)
+*.dll
+*.so
+docs/.pdf_build/
+
+# local logs
+*.log
+*.err
+
+# superseded / scratch runs (the final sweeps in results/final_* and results/window are kept)
+results/int6/
+results/seq6/
+results/smoke/
+
+# private commercial documents: drafts for outreach and fundraising, not for the public repository
+docs/OUTREACH_KIT.md
+docs/COMMERCIAL_PITCH.md
+
+# pre-audit backup of the window benchmark (superseded)
+results/window/results.before-audit.json
