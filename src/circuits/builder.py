@@ -57,12 +57,16 @@ class _Rec:
 
 def build_memory_experiment(code: CSSCode, rounds: int, noise: NoiseModel | None = None,
                             basis: str = "Z", layers: list[Layer] | None = None,
-                            detectors: str = "matched") -> MemoryExperiment:
+                            detectors: str = "matched", data_perms: dict[int, np.ndarray] | None = None) -> MemoryExperiment:
     """Build the full noisy memory circuit.
 
     basis: "Z" (protect Z-basis logical states, detect X errors with Z checks) or "X".
     detectors: "matched" (only checks deterministic in ``basis``) or "all" (both check types;
     the other type gets gauge-free detectors from round 2 on).
+    data_perms: {round: permutation}: after that syndrome round, a physical SWAP network moves the content of data
+    qubit i to qubit perm[i] (a logical gate when the permutation is a code automorphism).  The permutation must map
+    every stabiliser of the code onto a stabiliser; detectors then compare each check with the measurement of the
+    check it came from, so they stay deterministic.
     """
     if rounds < 1:
         raise ValueError("rounds >= 1")
@@ -137,8 +141,32 @@ def build_memory_experiment(code: CSSCode, rounds: int, noise: NoiseModel | None
                     c.append("DETECTOR", [rec.tgt(idx)], [i, r, 0])
         prev_meas.update(cur)
 
+    def apply_gate(perm: np.ndarray):
+        from algebra.logical_gates import swap_circuit
+        perm = np.asarray(perm)
+        for kind, h in (("X", code.hx), ("Z", code.hz)):
+            where = {frozenset(np.flatnonzero(row).tolist()): i for i, row in enumerate(h)}
+            image = []
+            for row in h:
+                img = frozenset(int(perm[q]) for q in np.flatnonzero(row))
+                if img not in where:
+                    raise ValueError("data permutation does not map every stabiliser onto a stabiliser: not a code automorphism")
+                image.append(where[img])
+            old = prev_meas.get(kind)
+            if old is not None:
+                new = [None] * len(old)
+                for i, j in enumerate(image):
+                    new[j] = old[i]                 # the check now labelled j was measured, one round ago, as check i
+                prev_meas[kind] = new
+        c.append("TICK")
+        for ins in swap_circuit(perm):
+            c.append(ins)
+        c.append("TICK")
+
     for r in range(rounds):
         measure_round(r)
+        if data_perms and r in data_perms:
+            apply_gate(data_perms[r])
 
     # ---- transversal readout + final detectors + observables
     c.append("M" if basis == "Z" else "MX", data, noise.p_meas) if noise.p_meas else c.append("M" if basis == "Z" else "MX", data)

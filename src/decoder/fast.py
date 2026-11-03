@@ -26,6 +26,7 @@ void qd_decode_batch(void* h, int shots, const uint8_t* synd, uint8_t* out, int*
                      uint8_t* status, uint64_t* latency_ns, int use_osd);
 void qd_decode_stream(void* h, int shots, const uint8_t* synd, uint8_t* out, int* iters,
                       uint8_t* status, uint64_t* bp_ns, uint64_t* total_ns, int use_osd);
+void qd_bp_posterior(void* h, const uint8_t* synd, int16_t* post, int* iters, uint8_t* status);
 typedef struct { void* dec; int nrows; const int* rows; int ngroups; const int* groups; const int* gcols; int last; } QdWin;
 void qd_window_decode(const QdWin* wins, int nwin, int B, int nDet, int nMech, const int* hc_colptr, const int* hc_rowidx,
                       uint8_t* syn, uint8_t* err, uint8_t* failed, uint8_t* shot_status,
@@ -134,6 +135,19 @@ class FastDecoder:
                                   _ffi.from_buffer("int[]", it), _ffi.from_buffer("uint8_t[]", st),
                                   _ffi.from_buffer("uint64_t[]", bp), _ffi.from_buffer("uint64_t[]", tot), int(use_osd))
         return DecodeResult(out, it, st, tot, bp)
+
+    def bp_posterior(self, synd) -> tuple[np.ndarray, int, int]:
+        """BP only on one syndrome: (final int16 posterior LLRs, iterations, status 0 converged / 1 not)."""
+        s = np.ascontiguousarray(synd, dtype=np.uint8)
+        if s.shape != (self.m,):
+            raise ValueError(f"syndrome length {s.shape} != ({self.m},)")
+        post = np.zeros(self.n, np.int16)
+        it = np.zeros(1, np.int32)
+        st = np.zeros(1, np.uint8)
+        with self._lock:
+            self.lib.qd_bp_posterior(self._h, _ffi.from_buffer("uint8_t[]", s), _ffi.from_buffer("int16_t[]", post),
+                                     _ffi.from_buffer("int[]", it), _ffi.from_buffer("uint8_t[]", st))
+        return post, int(it[0]), int(st[0])
 
     def channel_llr(self) -> np.ndarray:
         out = np.zeros(self.n, np.int16)

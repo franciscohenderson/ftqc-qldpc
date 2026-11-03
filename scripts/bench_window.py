@@ -103,7 +103,7 @@ def main():
             res.append(run(code, p, a.rounds, SHOTS.get((code, p), 10000), a.single, a.seed))
     out = ROOT / a.out
     out.mkdir(parents=True, exist_ok=True)
-    (out / "results.json").write_text(json.dumps({"runs": res, "machine": "AMD Ryzen 5 5600G, AVX2, 16 x int16 lanes",
+    (out / "results.json").write_text(json.dumps({"runs": res, "machine": "desktop processor with AVX2, 16 x int16 lanes",
                                                   "schedule": "interleaved depth 7", "decoder_core": "bp30-osdcs32-int16"}, indent=2))
     print("wrote", out / "results.json")
 

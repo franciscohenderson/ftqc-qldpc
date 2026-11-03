@@ -66,6 +66,31 @@ async def benchmarks():
         raise HTTPException(503, f"benchmark data missing: {e}")
 
 
+@app.get("/api/v1/hardware")
+async def hardware():
+    return await run_in_threadpool(svc.hardware)
+
+
+@app.get("/api/v1/rtl/vector/{index}")
+async def rtl_vector(index: int):
+    try:
+        return await run_in_threadpool(svc.rtl_vector, index)
+    except IndexError:
+        raise HTTPException(404, "vector index out of range")
+    except FileNotFoundError as e:
+        raise HTTPException(503, f"RTL results missing: {e}")
+
+
+@app.get("/api/v1/rtl/file/{name}")
+async def rtl_file(name: str):
+    if name not in svc.RTL_FILES:                      # whitelist: nothing else under exports/ is ever served
+        raise HTTPException(404, "unknown file")
+    path = svc.ROOT / "exports" / "rtl" / name
+    if not path.exists():
+        raise HTTPException(404, "file not generated yet")
+    return FileResponse(path, media_type="text/plain; charset=utf-8", filename=name)
+
+
 @app.websocket("/api/v1/stream/decode")
 async def stream_decode(ws: WebSocket):
     await ws.accept()

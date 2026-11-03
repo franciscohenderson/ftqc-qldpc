@@ -63,6 +63,99 @@
    "basis": "Z",
    "distance_code": null,
    "wall_seconds": 232.9999924999429
+  },
+  {
+   "n_mechanisms": 2790,
+   "n_detectors": 315,
+   "n_observables": 8,
+   "seconds": 300.21788599994034,
+   "time_limit": 300.0,
+   "status": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+   "d_upper": 12,
+   "witness": [
+    123,
+    139,
+    168,
+    267,
+    269,
+    285,
+    296,
+    348,
+    355,
+    403,
+    441,
+    800
+   ],
+   "witness_observables": [
+    7
+   ],
+   "d_lower": 2,
+   "certified": false,
+   "code": "BB90",
+   "schedule": "interleaved",
+   "cnot_layers": 7,
+   "rounds": 6,
+   "basis": "Z",
+   "distance_code": 10,
+   "wall_seconds": 300.2229930999456
+  },
+  {
+   "n_mechanisms": 2790,
+   "n_detectors": 315,
+   "n_observables": 8,
+   "seconds": 300.1210021999432,
+   "time_limit": 300.0,
+   "status": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+   "d_upper": 9,
+   "witness": [
+    59,
+    68,
+    163,
+    164,
+    200,
+    205,
+    236,
+    264,
+    291
+   ],
+   "witness_observables": [
+    0
+   ],
+   "d_lower": 2,
+   "certified": false,
+   "code": "BB90",
+   "schedule": "sequential",
+   "cnot_layers": 12,
+   "rounds": 6,
+   "basis": "Z",
+   "distance_code": 10,
+   "wall_seconds": 300.12226510001346
+  },
+  {
+   "max_weight": null,
+   "n_mechanisms": 3348,
+   "n_detectors": 378,
+   "n_observables": 8,
+   "seconds": 300.37159320001956,
+   "time_limit": 300.0,
+   "status": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+   "d_upper": 132,
+   "witness_observables": [
+    0,
+    1,
+    2,
+    6,
+    7
+   ],
+   "d_lower": 2,
+   "certified": false,
+   "code": "BB108",
+   "schedule": "interleaved",
+   "cnot_layers": 7,
+   "rounds": 6,
+   "basis": "Z",
+   "distance_code": 10,
+   "wall_seconds": 300.3747394999955
   }
  ]
 }

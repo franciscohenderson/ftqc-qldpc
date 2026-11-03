@@ -49,3 +49,20 @@ def test_single_shot_fused_call_matches_batch_row(setup):
     full = wd.decode_batch_fused(det[:8])
     for i in range(8):
         assert np.array_equal(wd.decode_batch_fused(det[i:i + 1]).errors[0], full.errors[i])
+
+
+def test_empty_batch(setup):
+    prob, rnd, det, _ = setup
+    wd = WindowDecoder(prob, rnd, W=3, F=1)
+    r = wd.decode_batch_fused(det[:0])
+    assert r.errors.shape == (0, prob.h.shape[1]) and r.failed.shape == (0,) and r.bp_ns.shape == (wd.n_windows,)
+
+
+def test_concurrent_calls_do_not_corrupt_each_other(setup):
+    from concurrent.futures import ThreadPoolExecutor
+    prob, rnd, det, _ = setup
+    wd = WindowDecoder(prob, rnd, W=3, F=1)
+    ref = wd.decode_batch_fused(det[:96]).errors
+    with ThreadPoolExecutor(4) as ex:
+        outs = list(ex.map(lambda _: wd.decode_batch_fused(det[:96]).errors, range(8)))
+    assert all(np.array_equal(o, ref) for o in outs)      # the per-window locks serialise the shared C++ scratch buffers

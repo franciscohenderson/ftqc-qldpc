@@ -183,3 +183,29 @@ def test_ws_circuit_window_mode_streams_window_telemetry():
         assert any(ws.receive_json()["type"] == "error" for _ in range(8))
         ws.send_json({"W": 3, "F": 3})                         # F == W: no look-ahead round
         assert any(ws.receive_json()["type"] == "error" for _ in range(8))
+
+
+def test_hardware_endpoint_serves_only_measured_data():
+    j = client.get("/api/v1/hardware").json()
+    assert {"circuit_distance", "logical_gates", "window_fused", "rtl", "rtl_files", "rtl_examples"} <= set(j)
+    assert all("witness" not in r for r in j["circuit_distance"])
+    assert j["rtl"]["bit_exact"]["rtl_vs_cpp"]["all"] is True
+    assert j["window_fused"] and all(c["identical_decisions"] for r in j["window_fused"] for c in r["configs"].values())
+    assert all(v["in_memory_circuit"]["violations_total"] == 0 for v in j["logical_gates"].values())
+
+
+def test_rtl_vector_is_checked_live_against_the_cpp_kernel():
+    ex = client.get("/api/v1/hardware").json()["rtl_examples"]
+    for key in ("no_iterations", "typical", "not_converged"):
+        v = client.get(f"/api/v1/rtl/vector/{ex[key]}").json()
+        assert v["identical_to_cpp_kernel"] is True and v["cycles"] == 2 * v["iterations"] + 2
+        assert len(v["unsatisfied_per_iteration"]) == v["iterations"] + 1
+    assert client.get(f"/api/v1/rtl/vector/{ex['not_converged']}").json()["converged"] is False
+    assert client.get("/api/v1/rtl/vector/999999").status_code == 404
+
+
+def test_rtl_download_is_a_whitelist():
+    r = client.get("/api/v1/rtl/file/tars_bp_bb72_hz.sv")
+    assert r.status_code == 200 and "module tars_bp_bb72_hz" in r.text
+    for bad in ("..%2F..%2Fpyproject.toml", "qdecoder.cpp", "tars_bp_bb72_hz.sv.bak"):
+        assert client.get(f"/api/v1/rtl/file/{bad}").status_code == 404

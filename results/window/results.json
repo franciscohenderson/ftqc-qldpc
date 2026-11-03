@@ -965,7 +965,7 @@
       }
     }
   ],
-  "machine": "AMD Ryzen 5 5600G, AVX2, 16 x int16 lanes",
+  "machine": "desktop processor with AVX2, 16 x int16 lanes",
   "schedule": "interleaved depth 7",
   "decoder_core": "bp30-osdcs32-int16"
 }

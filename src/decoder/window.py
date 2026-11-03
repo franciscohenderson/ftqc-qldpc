@@ -18,6 +18,7 @@ look-ahead (F < W) unless a single window covers the whole experiment.
 """
 from __future__ import annotations
 
+import contextlib
 import time
 from dataclasses import dataclass
 
@@ -177,12 +178,17 @@ class WindowDecoder:
         """Same decisions as ``decode_batch`` with the whole window loop inside one C++ call.
 
         Returns per-window batch-amortized per-shot times of the three costs: BP, post-processing (OSD-CS on the lanes
-        BP left unsatisfied) and propagation of the committed correction into later rounds.
+        BP left unsatisfied) and "prop" = gathering the window's sub-syndrome + committing + propagating the correction
+        into later rounds. The three add up to the C++ time of the loop.
         """
         from .fast import _ffi, _load
         lib = _load()
         det = np.ascontiguousarray(det, dtype=np.uint8)
         B = det.shape[0]
+        if B == 0:
+            z = np.zeros(self.n_windows)
+            return FusedResult(np.zeros((0, self.H.shape[1]), np.uint8), np.zeros(0, bool), np.zeros(0, np.uint8),
+                               np.zeros(0, np.uint8), z, z.copy(), z.copy(), np.zeros(4, np.int64))
         if not hasattr(self, "_fused"):
             keep, specs = [], _ffi.new("QdWin[]", self.n_windows)
             for k, win in enumerate(self.windows):
@@ -207,14 +213,21 @@ class WindowDecoder:
         nw = self.n_windows
         bp, post, prop = (np.zeros(nw, dtype=np.uint64) for _ in range(3))
         counts = np.zeros(4, dtype=np.int64)
+        with contextlib.ExitStack() as stack:        # the C++ scratch buffers of each window decoder are not thread-safe
+            for win in self.windows:
+                stack.enter_context(win.decoder._lock)
+            self._fused_call(lib, specs, nw, B, colptr, rowidx, syn, err, failed, status, bp, post, prop, counts)
+        residual = (((self.Hc @ err.T.astype(np.int64)) % 2).T.astype(np.uint8) ^ det).sum(axis=1)
+        return FusedResult(err, failed.astype(bool), residual, status, bp / B, post / B, prop / B, counts)
+
+    def _fused_call(self, lib, specs, nw, B, colptr, rowidx, syn, err, failed, status, bp, post, prop, counts):
+        from .fast import _ffi
         lib.qd_window_decode(specs, nw, B, self.H.shape[0], self.H.shape[1],
                              _ffi.cast("const int*", _ffi.from_buffer(colptr)), _ffi.cast("const int*", _ffi.from_buffer(rowidx)),
                              _ffi.from_buffer("uint8_t[]", syn), _ffi.from_buffer("uint8_t[]", err),
                              _ffi.from_buffer("uint8_t[]", failed), _ffi.from_buffer("uint8_t[]", status),
                              _ffi.from_buffer("uint64_t[]", bp), _ffi.from_buffer("uint64_t[]", post),
                              _ffi.from_buffer("uint64_t[]", prop), _ffi.from_buffer("int64_t[]", counts))
-        residual = (((self.Hc @ err.T.astype(np.int64)) % 2).T.astype(np.uint8) ^ det).sum(axis=1)
-        return FusedResult(err, failed.astype(bool), residual, status, bp / B, post / B, prop / B, counts)
 
     def predict_observables(self, errors: np.ndarray) -> np.ndarray:
         return (self.prob.obs @ errors.T.astype(np.int64) % 2).T

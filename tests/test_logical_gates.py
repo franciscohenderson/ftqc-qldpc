@@ -34,3 +34,27 @@ def test_stim_agrees_with_the_predicted_logical_action():
     for g in gates:
         s = g["stim"]
         assert s["effective_perm_matches"] and s["code_space_preserved"] and s["logical_prediction_mismatches"] == 0, g["shift"]
+
+
+def test_gate_between_rounds_keeps_detectors_deterministic():
+    """The translation gates, inserted between syndrome rounds of the depth-7 schedule, break no detector."""
+    import numpy as np
+    from algebra.logical_gates import translation_perm, verify_in_memory_circuit
+    from api.services import get_layers
+    code = get_code("BB72")
+    layers = get_layers("BB72", "interleaved")
+    assert len(layers) == 7
+    for st in [(1, 0), (0, 1), (2, 3), (5, 4)]:
+        r = verify_in_memory_circuit(code, layers, {1: translation_perm(code, *st), 2: translation_perm(code, 1, 1)}, rounds=4)
+        assert r["violations"] == 0 and r["gauge_detectors"] == 0
+
+
+def test_non_automorphism_is_rejected_by_the_builder():
+    import numpy as np
+    import pytest
+    from circuits.builder import build_memory_experiment
+    code = get_code("BB72")
+    perm = np.arange(code.n)
+    perm[[0, 1]] = perm[[1, 0]]                    # one transposition is not a symmetry of the code
+    with pytest.raises(ValueError):
+        build_memory_experiment(code, 3, data_perms={0: perm})

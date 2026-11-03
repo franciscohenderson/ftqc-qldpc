@@ -328,8 +328,10 @@ QD_API void qd_window_decode(const QdWin* wins, int nwin, int B, int nDet, int n
         if (out.size() < (size_t)B * n) out.resize((size_t)B * n);
         if (st.size() < (size_t)B) { st.resize(B); iters.resize(B); }
         if (post.size() < (size_t)n) post.resize(n);
+        uint64_t tg0 = now_ns();
         for (int b = 0; b < B; b++)
             for (int r = 0; r < m; r++) sub[(size_t)b * m + r] = syn[(size_t)b * nDet + w.rows[r]];
+        const uint64_t tgather = now_ns() - tg0;
         uint64_t tbp = 0, tpost = 0;
         for (int s0 = 0; s0 < B; s0 += L) {
             int cnt = std::min(L, B - s0);
@@ -359,6 +361,15 @@ QD_API void qd_window_decode(const QdWin* wins, int nwin, int B, int nDet, int n
             }
         }
         uint64_t t4 = now_ns();
-        bp_ns[k] = tbp; post_ns[k] = tpost; prop_ns[k] = t4 - t3;
+        bp_ns[k] = tbp; post_ns[k] = tpost; prop_ns[k] = tgather + (t4 - t3);   // "prop" = sub-syndrome gather + commit + propagate
     }
+}
+
+// Reference for hardware co-verification: BP only (no OSD) on ONE syndrome, returning the final posterior LLRs
+// (int16, exactly the values the kernel holds when it stops), the iteration count and the BP status.
+QD_API void qd_bp_posterior(void* h, const uint8_t* synd, int16_t* post, int* iters, uint8_t* status) {
+    Dec& d = *(Dec*)h;
+    std::vector<uint8_t> out(d.n);
+    decode_chunk(d, 1, synd, out.data(), iters, status, false);
+    for (int j = 0; j < d.n; j++) post[j] = d.tot[j][0];
 }

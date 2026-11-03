@@ -77,7 +77,7 @@ def window_facts() -> str:
 
 def main():
     out = ["# FACTS (auto-generated from repository data; the only numbers documents may cite)\n"]
-    out.append("Machine: AMD Ryzen 5 5600G (6C/12T, AVX2, no AVX-512), Windows 11, Python 3.14, clang via zig c++ (C++20), 16 x int16 SIMD lanes.\n")
+    out.append("Machine: desktop processor (6C/12T) with AVX2, no AVX-512, Windows 11, Python 3.14, clang via zig c++ (C++20), 16 x int16 SIMD lanes.\n")
     out.append("## Code parameters (exact MILP via HiGHS unless stated)\n")
     out.append((ROOT / "exports" / "code_parameters.md").read_text(encoding="utf-8"))
     params = json.loads((ROOT / "exports" / "code_parameters.json").read_text(encoding="utf-8"))
@@ -118,6 +118,9 @@ def main():
     if kp.exists():
         out.append("```json\n" + kp.read_text(encoding="utf-8") + "\n```\n")
     out.append(window_facts())
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from facts_hardware import hardware_facts
+    out.append(hardware_facts())
     out.append("## Other measured facts\n")
     out.append("* Interleaved schedule depth 7 vs sequential depth 12 CNOT layers per round (0 ordering violations, Stim detectors deterministic with noise off).\n"
                "* CNOTs per round = |H_X| + |H_Z| (BB72: 432, BB144: 864).\n"

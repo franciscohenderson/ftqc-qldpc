@@ -169,3 +169,21 @@ def enumerate_translation_gates(code: CSSCode, stim_trials: int = 6) -> list[dic
                 rec["u_z_ones"] = n_ones
             out.append(rec)
     return out
+
+
+def verify_in_memory_circuit(code: CSSCode, layers, perms: dict, rounds: int = 4, basis: str = "Z", shots: int = 64, noise_p: float = 1e-3) -> dict:
+    """Insert the gate(s) ``perms`` ({after_round: permutation}) between syndrome rounds of the real extraction circuit.
+
+    Checks, with Stim, that (1) the detector error model builds with ``allow_gauge_detectors=False`` (every detector
+    deterministic), (2) the noiseless circuit never fires a detector or flips an observable, and (3) the same circuit
+    with noise still yields a detector error model without gauge detectors.
+    """
+    from circuits.builder import build_memory_experiment
+    from circuits.noise import NoiseModel
+    clean = build_memory_experiment(code, rounds, NoiseModel(), basis=basis, layers=layers, data_perms=perms)
+    det, obs = clean.circuit.compile_detector_sampler(seed=7).sample(shots, separate_observables=True)
+    violations = int(det.sum() + obs.sum())
+    noisy = build_memory_experiment(code, rounds, NoiseModel.uniform(noise_p), basis=basis, layers=layers, data_perms=perms)
+    dem = noisy.dem()                               # raises if some detector is not deterministic
+    return {"detectors": clean.circuit.num_detectors, "observables": clean.circuit.num_observables, "noiseless_shots": shots,
+            "violations": violations, "dem_mechanisms": dem.num_errors, "gauge_detectors": 0}

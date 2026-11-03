@@ -51,8 +51,12 @@ def dem_columns(dem: stim.DetectorErrorModel):
     return cols
 
 
-def compute_circuit_distance(dem: stim.DetectorErrorModel, time_limit: float = 60.0) -> dict:
-    """Exact (or bounded) circuit-level distance of ``dem``.  See the module docstring."""
+def compute_circuit_distance(dem: stim.DetectorErrorModel, time_limit: float = 60.0, max_weight: int | None = None) -> dict:
+    """Exact (or bounded) circuit-level distance of ``dem``.  See the module docstring.
+
+    With ``max_weight`` the problem becomes a decision problem ("is there an undetected logical fault of weight <=
+    max_weight?"): infeasible proves ``d >= max_weight + 1`` and is usually much easier for the solver.
+    """
     t0 = time.perf_counter()
     nd, no = dem.num_detectors, dem.num_observables
     cols = dem_columns(dem)
@@ -79,13 +83,16 @@ def compute_circuit_distance(dem: stim.DetectorErrorModel, time_limit: float = 6
     A2 = sp.hstack([O, sp.csr_matrix((no, nd)), -2 * sp.identity(no), -sp.identity(no)]).tocsr()
     A3 = sp.csr_matrix((np.ones(no), (np.zeros(no, int), np.arange(m + nd + no, n))), shape=(1, n))
     cons = [LinearConstraint(A1, 0, 0), LinearConstraint(A2, 0, 0), LinearConstraint(A3, 1, np.inf)]
+    if max_weight is not None:
+        cw = np.zeros((1, n)); cw[0, :m] = 1
+        cons.append(LinearConstraint(sp.csr_matrix(cw), 0, max_weight))
     lb = np.zeros(n)
     ub = np.concatenate([np.ones(m), degh // 2, dego // 2, np.ones(no)]).astype(float)
     c = np.concatenate([np.ones(m), np.zeros(nd + no + no)])
     res = milp(c, constraints=cons, integrality=np.ones(n), bounds=Bounds(lb, ub),
                options={"time_limit": float(time_limit), "disp": False, "mip_rel_gap": 0.0})
     secs = time.perf_counter() - t0
-    out = {"n_mechanisms": m, "n_detectors": nd, "n_observables": no, "seconds": secs, "time_limit": time_limit,
+    out = {"max_weight": max_weight, "n_mechanisms": m, "n_detectors": nd, "n_observables": no, "seconds": secs, "time_limit": time_limit,
            "status": str(res.message).strip()}
     dual = getattr(res, "mip_dual_bound", None)
     if dual is not None and not np.isfinite(dual):
@@ -103,6 +110,8 @@ def compute_circuit_distance(dem: stim.DetectorErrorModel, time_limit: float = 6
         lower = max(floor, int(np.ceil(dual - 1e-6))) if dual is not None else (w if res.status == 0 else floor)
         out["d_lower"] = min(lower, w)
         out["certified"] = bool(res.status == 0 and out["d_lower"] == w)
+    elif max_weight is not None and res.status == 2:      # infeasible: no undetected logical fault of weight <= max_weight
+        out.update(d_upper=None, d_lower=max_weight + 1, certified=False, proved_no_fault_up_to=max_weight)
     else:
         out.update(d_upper=None, d_lower=max(floor, int(np.ceil(dual - 1e-6))) if dual is not None else None, certified=False)
     return out

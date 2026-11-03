@@ -27,6 +27,7 @@ from decoder.dem import dem_to_problem                     # noqa: E402
 from decoder.window import WindowDecoder, detector_rounds  # noqa: E402
 
 CONFIGS = [(3, 1), (4, 2)]
+REPS = 3
 
 
 def pc(a_ns) -> dict:
@@ -43,14 +44,20 @@ def run(name: str, p: float, rounds: int, shots: int, single: int, seed: int) ->
     rnd = detector_rounds(exp.circuit)
     det, obs = exp.circuit.compile_detector_sampler(seed=seed).sample(shots, separate_observables=True)
     det = det.astype(np.uint8)
-    out = {"code": name, "p": p, "rounds": rounds, "shots": shots, "single_shots": single, "seed": seed,
+    out = {"code": name, "p": p, "rounds": rounds, "shots": shots, "single_shots": single, "seed": seed, "wall_time_best_of": REPS,
            "dem": {"detectors": int(prob.h.shape[0]), "mechanisms": int(prob.h.shape[1])}, "configs": {}}
     for W, F in CONFIGS:
         wd = WindowDecoder(prob, rnd, W=W, F=F)
         nw = wd.n_windows
         wd.decode_batch(det[:32]); wd.decode_batch_fused(det[:32])                       # warm-up
-        t0 = time.perf_counter(); py = wd.decode_batch(det, timing=True, single_shots=single); wall_py = time.perf_counter() - t0
-        t0 = time.perf_counter(); fu = wd.decode_batch_fused(det); wall_fu = time.perf_counter() - t0
+        wall_py = wall_fu = float("inf")
+        for _ in range(REPS):                          # best of REPS, the same treatment for both loops
+            t0 = time.perf_counter(); py_ = wd.decode_batch(det, timing=True, single_shots=single); w = time.perf_counter() - t0
+            if w < wall_py:
+                wall_py, py = w, py_
+            t0 = time.perf_counter(); fu_ = wd.decode_batch_fused(det); w = time.perf_counter() - t0
+            if w < wall_fu:
+                wall_fu, fu = w, fu_
         same = bool(np.array_equal(py.errors, fu.errors) and np.array_equal(py.failed, fu.failed))
         fails = int(((wd.predict_observables(fu.errors) != obs).any(1) | fu.failed).sum())
         # single-shot fused calls: one shot per C++ call, per-window split

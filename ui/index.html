@@ -9,7 +9,7 @@
 <style>html{background:#18225a}:focus-visible{outline:2px solid #f6bd44;outline-offset:3px}</style>
 <title>Tars · el decodificador, en vivo</title>
 <link rel="preload" href="/ui/fonts/familjen-grotesk.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/ui/tars.css?v=12">
+<link rel="stylesheet" href="/ui/tars.css?v=13">
 </head>
 <body>
 <header class="bar">
@@ -102,15 +102,42 @@
   <div class="prof" id="prof"></div>
 </section>
 
+<section class="seccion" id="distancia">
+  <div><h2>Lo que el circuito deja pasar</h2><p id="d-t">Midiendo la distancia con ruido en cada puerta…</p><p class="nota" id="d-n"></p></div>
+  <div><svg id="d-plot" viewBox="0 0 700 250" role="img" aria-label="Distancia de circuito de BB72: cotas por calendario"></svg><div class="libro" id="d-lib"></div></div>
+</section>
+
 <section class="seccion" id="circuito">
   <div><h2>El circuito</h2><p id="q-t">Compilando el circuito de BB72 con tres rondas…</p><p class="nota">Con mediciones a mitad de circuito y dos llamadas externas, <b>decode_x</b> y <b>decode_z</b>: ahí enchufa un decodificador en tiempo real.</p></div>
   <pre id="qasm" aria-label="Programa OpenQASM 3.0">…</pre>
+</section>
+
+<section class="seccion" id="compuertas">
+  <div><h2>Compuertas que no cuestan nada</h2><p id="g-t"></p><div class="chips" id="g-chips" role="group" aria-label="Código"></div><p class="nota" id="g-n"></p></div>
+  <div><div class="matriz" id="g-u" role="img" aria-label="Matriz lógica inducida por una traslación"></div><div class="libro" id="g-lib"></div></div>
+</section>
+
+<section class="seccion" id="ventana">
+  <div><h2>Una ventana, una sola llamada</h2><p id="w-t"></p><div class="chips" id="w-chips" role="group" aria-label="Código y ventana"></div><p class="nota" id="w-n"></p></div>
+  <div class="vent" id="w-body"></div>
+</section>
+
+<section class="seccion" id="silicio">
+  <div><h2>Hasta el silicio</h2><p id="s-t"></p><p class="nota" id="s-n"></p><div class="chips descargas" id="s-dl" role="group" aria-label="Descargas"></div></div>
+  <div class="insp">
+    <div class="chips" id="s-ex" role="group" aria-label="Síndromes de ejemplo"></div>
+    <label class="pick" for="s-i">Síndrome <span class="n" id="s-iv">509</span> de <span class="n" id="s-nv">1.000</span></label>
+    <input type="range" id="s-i" min="0" max="999" value="509" step="1">
+    <p class="lectura-s" id="s-lec" aria-live="polite">—</p>
+    <svg id="s-tr" viewBox="0 0 700 250" role="img" aria-label="Chequeos sin satisfacer en cada iteración"></svg>
+    <div class="libro" id="s-lib"></div>
+  </div>
 </section>
 </main>
 
 <footer id="honest"></footer>
 
-<script src="/ui/live.js?v=12"></script>
-<script src="/ui/tars.js?v=12"></script>
+<script src="/ui/live.js?v=13"></script>
+<script src="/ui/tars.js?v=13"></script>
 </body>
 </html>

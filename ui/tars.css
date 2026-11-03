@@ -153,3 +153,26 @@ body{background-image:repeating-linear-gradient(90deg,rgba(241,234,214,.035) 0 1
 .seccion #chips-plot .chip[aria-pressed=true]{border-bottom-color:transparent}
 .lado{background:transparent}
 .lado>div{padding-bottom:18px;border-bottom:1px solid var(--linea)}.lado>div:last-child{border-bottom:0}
+
+/* ---------- del código al silicio ---------- */
+.seccion .libro{margin-top:18px}
+.seccion .libro b{color:var(--lino);font-weight:600}
+a.chip{display:inline-block;color:var(--lino);text-decoration:none}
+a.chip:hover,a.chip:focus-visible{background:var(--lino);color:var(--sobre);border-color:var(--lino)}
+.seccion .descargas{margin-top:18px}
+.matriz{display:grid;gap:3px;max-width:min(100%,460px);margin-bottom:6px}
+.matriz i{display:block;aspect-ratio:1;background:var(--hondo);border:1px solid var(--linea)}
+.matriz i.u{background:var(--sint);border-color:var(--sint)}
+.vent{display:grid;gap:22px;align-content:start}
+.vent .fila{display:grid;gap:6px}
+.vent .fila .et{display:flex;justify-content:space-between;gap:12px;font-size:.95rem;color:var(--lino2)}
+.vent .fila .et b{color:var(--lino);font-weight:600}
+.vent .tira{display:flex;height:22px;background:var(--hondo);border:1px solid var(--linea)}
+.vent .tira i{display:block;height:100%;transition:width .5s var(--ease)}
+.vent .leyenda{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:.9rem;color:var(--lino2)}
+.vent .leyenda i{display:inline-block;width:10px;height:10px;margin-right:6px}
+.insp{display:grid;gap:12px;align-content:start}
+.pick{font-size:.95rem;color:var(--lino2)}.pick .n{color:var(--lino)}
+.insp input[type=range]{width:100%;accent-color:var(--sint);margin:2px 0 4px}
+.lectura-s{max-width:none;font-size:1.05rem;min-height:3.2em}
+.lectura-s b{font-weight:700}

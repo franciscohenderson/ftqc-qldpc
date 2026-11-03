@@ -1,6 +1,6 @@
 # FACTS (auto-generated from repository data; the only numbers documents may cite)
 
-Machine: AMD Ryzen 5 5600G (6C/12T, AVX2, no AVX-512), Windows 11, Python 3.14, clang via zig c++ (C++20), 16 x int16 SIMD lanes.
+Machine: desktop processor (6C/12T) with AVX2, no AVX-512, Windows 11, Python 3.14, clang via zig c++ (C++20), 16 x int16 SIMD lanes.
 
 ## Code parameters (exact MILP via HiGHS unless stated)
 
@@ -247,7 +247,7 @@ Full circuit-level decode latency (BP + OSD-CS), pooled over all p:
 
 ## Sliding-window (W, F) decoding vs full-horizon decoding (scripts/bench_window.py)
 
-Same Stim samples for every decoder; interleaved depth 7; core bp30-osdcs32-int16; AMD Ryzen 5 5600G, AVX2, 16 x int16 lanes. 6 syndrome rounds (7 detector layers). Latencies are measured inside the C++ kernel. "step" = one stationary window step (every window but the last; includes propagating the committed correction); "per round" = step / F; "reaction" = time of the LAST window (what remains to wait after the final syndrome round arrives); for the full-horizon decoder the reaction latency is its whole decode time. Batch = chunk time / 16 shots, so it includes the scalar OSD time of any lane of the chunk (a throughput view); single = one shot at a time (first 400 shots), the per-shot latency. Identical columns created by truncating the future boundary are merged before decoding; windows need F < W.
+Same Stim samples for every decoder; interleaved depth 7; core bp30-osdcs32-int16; desktop processor with AVX2, 16 x int16 lanes. 6 syndrome rounds (7 detector layers). Latencies are measured inside the C++ kernel. "step" = one stationary window step (every window but the last; includes propagating the committed correction); "per round" = step / F; "reaction" = time of the LAST window (what remains to wait after the final syndrome round arrives); for the full-horizon decoder the reaction latency is its whole decode time. Batch = chunk time / 16 shots, so it includes the scalar OSD time of any lane of the chunk (a throughput view); single = one shot at a time (first 400 shots), the per-shot latency. Identical columns created by truncating the future boundary are merged before decoding; windows need F < W.
 
 ### BB72 at p = 0.002 (20000 shots, seed 2026; full DEM = 252 detectors x 2232 mechanisms)
 
@@ -292,6 +292,50 @@ Shots left with a nonzero residual syndrome / shots where some window failed: W2
 | window (W=4, F=2), 3 windows | 1.080e-02 | 108/10000 | 8.95e-03 - 1.30e-02 | 396.0 / 501.9 / 691.1 | 1159.5 | 198.0 | 78.1 / 131.9 / 178.5 | 61.1 / 828.2 / 855.9 | 288 x 2736 (raw 2880) |
 
 Shots left with a nonzero residual syndrome / shots where some window failed: W2F1: 0 / 0, W3F1: 0 / 0, W4F2: 0 / 0.
+
+
+## Circuit-level distance d_circ (scripts/run_circuit_distance.py; MILP on the detector error model, HiGHS)
+
+d_circ = fewest DEM mechanisms with zero detector syndrome that flip a logical observable (Z-basis memory, uniform noise 1e-3, identical symptoms merged). `certified` means HiGHS proved lower = upper within the time limit; otherwise the row is a bound, not a value. `max weight asked` marks a decision problem (is there an undetected logical fault of weight <= W?).
+
+| code | layers | rounds | max weight asked | d_circ lower | d_circ upper | certified | seconds | time limit s |
+|---|---|---|---|---|---|---|---|---|
+| BB108 | 7 | 6 | - | 2 | 132 | False | 300 | 300.0 |
+| BB72 | 12 | 6 | - | 4 | 4 | True | 233 | 900.0 |
+| BB72 | 7 | 6 | - | 3 | 5 | False | 900 | 900.0 |
+| BB90 | 12 | 6 | - | 2 | 9 | False | 300 | 300.0 |
+| BB90 | 7 | 6 | - | 2 | 12 | False | 300 | 300.0 |
+
+## Zero-cost logical gates from translation automorphisms (scripts/run_logical_gates.py)
+
+| code | [[n,k]] | translations | automorphisms | non-trivial logical | distinct logical matrices | Stim predictions | Stim mismatches | gates inserted in the depth-7 circuit | violations | gauge detectors |
+|---|---|---|---|---|---|---|---|---|---|---|
+| BB72 | [[72,12]] | 35 | 35 | 35 | 35 | 7560 | 0 | 35 | 0 | 0 |
+| BB90 | [[90,8]] | 44 | 44 | 40 | 8 | 896 | 0 | 44 | 0 | 0 |
+| BB108 | [[108,8]] | 53 | 53 | 48 | 8 | 896 | 0 | 53 | 0 | 0 |
+| BB144 | [[144,12]] | 71 | 71 | 70 | 35 | 7560 | 0 | 71 | 0 | 0 |
+
+## Fused C++ window loop vs Python loop (scripts/run_window_fused.py)
+
+Same Stim samples (seed 2026, 6 rounds, p = 2e-3), best of 3 wall-clock runs per loop. `prop` = sub-syndrome gather + commit + propagate. Single-shot step = median per-window time of one-shot calls (BP-bound, not accelerated by fusion).
+
+| code | (W,F) | shots | identical decisions | logical failures | Python us/shot | fused us/shot | reduction | BP us | OSD us | prop us | step single p50 Python us | step single p50 fused us |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| BB72 | (3,1) | 1024 | True | 4 | 250 | 180 | 28 % | 15.8 | 20.2 | 0.6 | 27.7 | 28.9 |
+| BB72 | (4,2) | 1024 | True | 5 | 219 | 153 | 30 % | 22.9 | 35.5 | 1.1 | 39.0 | 46.6 |
+| BB144 | (3,1) | 1024 | True | 1 | 838 | 606 | 28 % | 34.4 | 94.1 | 1.4 | 88.0 | 90.5 |
+| BB144 | (4,2) | 1024 | True | 0 | 665 | 495 | 26 % | 49.7 | 152.2 | 2.1 | 138.7 | 149.8 |
+
+## BP kernel as SystemVerilog, executed and compared with qdecoder.cpp (scripts/run_rtl.py)
+
+* BB72 H_Z 36x72 (216 edges), int16 saturating normalized min-sum alpha=0.75, max 30 iterations, channel LLR 62, 3390 lines of SystemVerilog-2012 (`exports/rtl/`).
+* 1000 noisy syndromes (iid X errors p=0.04, seed 2026): 953 converge, 47 reach the iteration limit.
+* RTL (Yosys -> CXXRTL -> zig c++, executed clock edge by clock edge) vs C++: posterior LLRs True, hard decisions True, iterations True, converged flag True; fixed-point model vs C++ True.
+* Cycles = 2*iterations + 2 (holds on every vector: True): min 2, p50 6, p95 42, max 62, mean 9.60; iterations mean 3.80, max 30.
+* Nominal-clock conversion of those RTL cycles (the clocks are assumptions, not achieved frequencies; no FPGA flow was run): 250MHz: p50 0.024 us, p95 0.168 us, max 0.248 us; 400MHz: p50 0.015 us, p95 0.105 us, max 0.155 us.
+* For context only (a different quantity): CPU BP single-shot on the same syndromes, p50 1.3 us, p95 8.9 us.
+* Size: 4665 register bits (exact); 166895 generic 2-input gates from per-block Yosys synthesis (no ABC, no LUT mapping: an upper bound, not an FPGA report); deepest block 163 gates.
+* The generated testbench was executed: False (no Verilog simulator is available on this machine).
 
 
 ## Other measured facts

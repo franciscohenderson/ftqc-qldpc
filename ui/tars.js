@@ -4,6 +4,7 @@
   const C = {fondo: "#18225a", hondo: "#121a47", lino: "#f1ead6", lino2: "#c3c1d4", x: "#a9bdff", z: "#ff8da0", sint: "#f6bd44", ok: "#5fd3a8", mal: "#ff5a74"};
   const SER = {BB72: C.lino, BB90: C.x, BB108: C.sint, BB144: C.z, BB288: C.ok};
   const nf = Live.nf, num = (el, ns) => { const t = Live.t(ns); el.innerHTML = `${t.v}<small>${t.u}</small>`; };
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; e.innerHTML = html || ""; return e; };
   const loc = n => Number(n).toLocaleString("es-AR");
   const dTxt = c => c.exact ? `d=${c.d_x}` : `d entre ${c.d_x_lower} y ${c.d_x}`;   // BB288: solo cotas, sin certificar
 
@@ -329,4 +330,116 @@
   }
   fetch("/api/v1/compile", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({code: "BB72", schedule: "interleaved", rounds: 3, p: 1e-3})}).then(r => r.json()).then(j => {
     $("#q-t").textContent = `BB72, tres rondas: ${j.stats.qasm_lines} líneas de OpenQASM 3.0, ${j.stats.cnot_layers} capas de CNOT por ronda, ${j.stats.cnot_total} CNOT en total. Compilado ahora, en ${Math.round(j.elapsed_ms)} ms.`; $("#qasm").textContent = j.qasm; }).catch(e => { $("#q-t").textContent = "No pude compilar el circuito: " + e.message; });
+
+  /* =====================================================  DEL CÓDIGO AL SILICIO  ===================================================== */
+  /* Todo lo de abajo sale de /api/v1/hardware (resultados guardados) y de /api/v1/rtl/vector (el modelo bit a bit, comparado en vivo con el núcleo C++). */
+  const fx = (v, d = 1) => nf(v, d), txt = (x, y, t, a, svg, col) => { const e = se("text", {x, y, "text-anchor": a || "start", style: "font:400 12px Martian;fill:" + (col || C.lino2)}, svg); e.textContent = t; return e; };
+  const chip = (box, label, on, fn) => { const b = document.createElement("button"); b.className = "chip"; b.textContent = label; b.setAttribute("aria-pressed", on); b.onclick = () => { $$(".chip", box).forEach(x => x.setAttribute("aria-pressed", x === b)); fn(); }; box.appendChild(b); return b; };
+
+  function seccionDistancia(h) {
+    const runs = h.circuit_distance.filter(r => r.code === "BB72" && r.rounds === 6 && r.basis === "Z");
+    const seq = runs.find(r => r.schedule === "sequential"), ent = runs.find(r => r.schedule === "interleaved");
+    if (!seq || !ent) { $("#d-t").textContent = "Todavía no hay mediciones guardadas de la distancia de circuito."; return; }
+    const dc = seq.distance_code, dec = (h.circuit_distance_decision || []).find(r => r.code === "BB72" && r.schedule === "interleaved");
+    let t = `BB72 tiene distancia ${dc} como código. Con ruido en cada puerta del circuito real, 6 rondas, la distancia efectiva es menor: con ${seq.cnot_layers} capas de CNOT vale <b>${seq.d_lower}</b>, demostrado por el solver en ${loc(Math.round(seq.seconds))} s. Con ${ent.cnot_layers} capas el solver la acotó entre <b>${ent.d_lower}</b> y <b>${ent.d_upper}</b>, y no pudo cerrarla en ${loc(ent.time_limit)} s.`;
+    let lo = ent.d_lower, hi = ent.d_upper;
+    if (dec) {
+      if (dec.proved_no_fault_up_to != null) { lo = Math.max(lo, dec.d_lower); t += ` Después probó que no existe ninguna falla no detectada de peso ${dec.max_weight} o menos.` + (lo === hi ? ` Con eso, la distancia de las ${ent.cnot_layers} capas es <b>exactamente ${hi}</b>.` : ""); }
+      else if (dec.d_upper != null) { hi = Math.min(hi, dec.d_upper); t += ` Preguntando solo si existe una falla de peso ${dec.max_weight} o menos, halló una de peso ${dec.d_upper}.`; }
+      else t += ` Preguntarle solo si existe una falla de peso ${dec.max_weight} o menos tampoco terminó en ${loc(dec.time_limit)} s.`;
+    }
+    $("#d-t").innerHTML = t;
+    $("#d-n").innerHTML = "Una falla de peso <b>w</b> son w errores físicos del circuito que ningún detector ve y que, juntos, dan vuelta un qubit lógico. La distancia de circuito es el menor w posible. Cuenta los errores que se propagan por las puertas, que la distancia del código no ve. Una cota sin certificar es lo que hay, no una conclusión.";
+    const svg = $("#d-plot"); svg.innerHTML = ""; const W = 700, M = {l: 120, r: 24}, top = 40, dmax = Math.max(dc, hi, seq.d_upper) + 1, X = d => M.l + d / dmax * (W - M.l - M.r);
+    for (let d = 0; d <= dmax; d++) { se("line", {x1: X(d), x2: X(d), y1: top - 8, y2: 200, stroke: C.lino, opacity: .12}, svg); txt(X(d), 222, String(d), "middle", svg); }
+    se("line", {x1: X(dc), x2: X(dc), y1: top - 14, y2: 200, stroke: C.sint, "stroke-dasharray": "4 5"}, svg); txt(X(dc), top - 20, `distancia del código: ${dc}`, "middle", svg, C.sint);
+    const fila = (y, nombre, lo_, hi_, cert) => {
+      txt(M.l - 12, y + 5, nombre, "end", svg, C.lino);
+      if (hi_ == null) hi_ = dmax;
+      const pt = hi_ === lo_;
+      se("rect", {x: pt ? X(lo_) - 11 : X(lo_), y: y - 11, width: pt ? 22 : Math.max(2, X(hi_) - X(lo_)), height: 22, fill: cert ? C.ok : C.x, opacity: cert ? .95 : .35, stroke: cert ? C.ok : C.x, "stroke-dasharray": cert ? "" : "4 4"}, svg);
+      txt((X(lo_) + X(hi_)) / 2, y + 5, cert || lo_ === hi_ ? String(lo_) : `${lo_} a ${hi_}`, "middle", svg, cert ? C.fondo : C.lino);
+    };
+    fila(90, `${seq.cnot_layers} capas`, seq.d_lower, seq.d_upper, seq.certified);
+    fila(150, `${ent.cnot_layers} capas`, lo, hi, lo === hi);
+    svg.setAttribute("aria-label", `Distancia de circuito de BB72: ${seq.cnot_layers} capas ${seq.d_lower}, certificada; ${ent.cnot_layers} capas entre ${lo} y ${hi}`);
+    const lib = $("#d-lib"); lib.innerHTML = "";
+    const otros = h.circuit_distance.filter(r => r.code !== "BB72").sort((a, b) => a.code.localeCompare(b.code, "es", {numeric: true}) || b.cnot_layers - a.cnot_layers);
+    otros.forEach(r => lib.insertAdjacentHTML("beforeend", `<span>${r.code} · ${r.cnot_layers} capas · ${r.rounds} rondas</span><span class="n">${r.certified ? "exactamente " + r.d_lower : "entre " + r.d_lower + (r.d_upper != null ? " y " + r.d_upper : " y ?")} · ${loc(Math.round(r.seconds))} s</span>`));
+    if (otros.length) lib.insertAdjacentHTML("afterbegin", `<span><b>Códigos más grandes</b>, con tiempo acotado</span><span class="n">distancia del código ${[...new Set(otros.map(r => r.code + " " + r.distance_code))].join(", ")}</span>`);
+  }
+
+  function seccionCompuertas(h) {
+    const G = h.logical_gates, names = Object.keys(G); if (!names.length) { $("#g-t").textContent = "Todavía no hay compuertas medidas."; return; }
+    const chips = $("#g-chips");
+    function show(n) {
+      const g = G[n], ex = g.examples[0], k = g.k, mem = g.in_memory_circuit;
+      $("#g-t").innerHTML = `Correr todos los qubits de ${n} un paso por el toro de ${g.l} por ${g.m} no cambia ninguno de sus chequeos, pero sí le hace algo a los ${k} qubits lógicos: una compuerta que se logra renombrando qubits, sin una sola puerta física. De las ${g.automorphisms} traslaciones, ${g.nontrivial_logical_gates} actúan de forma no trivial, con ${g.distinct_logical_matrices} acciones distintas. En la matriz, cada fila dice en qué qubits lógicos se convierte uno: el desplazamiento (${ex.shift.join(", ")}) de ${n}.`;
+      const box = $("#g-u"); box.innerHTML = ""; box.style.gridTemplateColumns = `repeat(${k}, 1fr)`; box.setAttribute("aria-label", `Matriz lógica de ${k} por ${k} de la traslación (${ex.shift.join(", ")}) de ${n}; ${ex.u_z_ones} unos`);
+      ex.u_z.forEach(row => row.forEach(v => box.appendChild(el("i", v ? "u" : "", ""))));
+      $("#g-n").innerHTML = `Stim, el simulador de estabilizadores, contrastó ${loc(g.stim_predictions_checked)} predicciones de cómo cada traslación mueve los operadores lógicos, con <b>${g.stim_mismatches} discrepancias</b>, y confirmó que el espacio del código se conserva. Metidas una por una entre rondas del calendario de ${mem.schedule_layers} capas: <b>${mem.gates_inserted} compuertas, ${mem.violations_total} violaciones, ${mem.gauge_detectors} detectores de gauge</b>.`;
+      const lib = $("#g-lib"); lib.innerHTML = "";
+      [["Traslaciones probadas", loc(g.translations_tested)], ["Son simetrías del código", loc(g.automorphisms)], ["Compuertas lógicas no triviales", loc(g.nontrivial_logical_gates)], ["Acciones lógicas distintas", loc(g.distinct_logical_matrices)], ["Unos en la matriz mostrada", `${ex.u_z_ones} de ${k * k}`]].forEach(([a, b]) => lib.insertAdjacentHTML("beforeend", `<span>${a}</span><span class="n">${b}</span>`));
+    }
+    names.forEach((n, i) => chip(chips, n, i === 0, () => show(n))); show(names[0]);
+  }
+
+  function seccionVentana(h) {
+    const runs = h.window_fused; if (!runs.length) { $("#w-t").textContent = "Todavía no hay mediciones de la ventana fusionada."; return; }
+    const opts = []; runs.forEach(r => Object.values(r.configs).forEach(c => opts.push({r, c})));
+    const chips = $("#w-chips"), body = $("#w-body");
+    function show({r, c}) {
+      const py = c.python_loop, fu = c.fused_cpp, sp = fu.split_batch_per_shot_us, tot = sp.bp + sp.post + sp.prop, red = 100 * (1 - fu.wall_per_shot_us / py.wall_per_shot_us);
+      $("#w-t").innerHTML = `La ventana deslizante decide por tramos: resuelve las primeras rondas, confirma ${c.F} y arrastra su efecto a la ventana siguiente. Todo ese bucle corre ahora dentro del decodificador en C++, en una sola llamada. En ${r.code}, ventana (${c.W}, ${c.F}), tarda <b>${fx(fu.wall_per_shot_us, 0)} µs por disparo</b> contra ${fx(py.wall_per_shot_us, 0)} µs con el bucle en Python: <b>${fx(red, 0)} % menos</b>. Las decisiones son ${c.identical_decisions ? "<b>idénticas</b>, disparo por disparo" : "DISTINTAS"} (${loc(r.shots)} disparos, semilla ${r.seed}).`;
+      const bar = (a, col) => `<div class="tira"><i style="width:${a}%;background:${col}"></i></div>`;
+      const pct = x => (100 * x / tot).toFixed(1);
+      body.innerHTML = `<div class="fila"><div class="et"><span>Bucle en Python</span><b class="n">${fx(py.wall_per_shot_us, 0)} µs por disparo</b></div>${bar(100, "rgba(195,193,212,.55)")}</div>
+        <div class="fila"><div class="et"><span>Bucle en C++, una llamada</span><b class="n">${fx(fu.wall_per_shot_us, 0)} µs por disparo</b></div>${bar(100 * fu.wall_per_shot_us / py.wall_per_shot_us, C.sint)}</div>
+        <div class="fila"><div class="et"><span>En qué se va cada paso de ventana, por disparo</span><b class="n">${fx(tot, 1)} µs</b></div>
+          <div class="tira"><i style="width:${pct(sp.bp)}%;background:${C.x}"></i><i style="width:${pct(sp.post)}%;background:${C.sint}"></i><i style="width:${pct(sp.prop)}%;background:${C.z}"></i></div>
+          <div class="leyenda"><span><i style="background:${C.x}"></i>BP ${fx(sp.bp, 1)} µs</span><span><i style="background:${C.sint}"></i>OSD ${fx(sp.post, 1)} µs</span><span><i style="background:${C.z}"></i>armar y propagar ${fx(sp.prop, 1)} µs</span></div></div>`;
+      $("#w-n").innerHTML = `Un disparo suelto no se acelera: lo domina el propio BP (mediana ${fx(fu.step_single_us.p50_us, 1)} µs por paso con el bucle fusionado, ${fx(py.step_single_us.p50_us, 1)} µs con Python). Lo que se gana es rendimiento sostenido. El OSD pesa tanto porque corre solo en los disparos donde BP no converge. Mejor de ${loc(r.wall_time_best_of || 1)} corridas, ruido ${Live.sci(r.p)}, ${r.rounds} rondas.`;
+    }
+    opts.forEach((o, i) => chip(chips, `${o.r.code} · ${o.c.W},${o.c.F}`, i === 0, () => show(o))); show(opts[0]);
+  }
+
+  function seccionSilicio(h) {
+    const R = h.rtl; if (!R) { $("#s-t").textContent = "Todavía no se generó el RTL."; return; }
+    const cy = R.cycles, c250 = R.nominal_clock_conversion_us["250MHz"], c400 = R.nominal_clock_conversion_us["400MHz"], syn = R.synthesis, reg = syn && syn.registers.total;
+    $("#s-t").innerHTML = `El núcleo BP de ${R.code} (matriz de ${R.checks} por ${R.variables}) escrito como SystemVerilog sintetizable: números enteros de 16 bits, sumas que saturan, un chequeo por nodo y todos a la vez. El archivo se genera desde el mismo grafo que usa el decodificador. Se ejecutó <b>ciclo a ciclo</b> con ${loc(R.shots)} síndromes con ruido y coincide <b>bit a bit</b> con el C++: los ${R.variables} valores finales (LLR de 16 bits) de cada disparo, las decisiones y el número de iteraciones.`;
+    $("#s-n").innerHTML = `Son ciclos de reloj del RTL, no tiempo de CPU. Las frecuencias de 250 y 400 MHz son nominales, solo para convertir: <b>no se sintetizó ni se probó en ninguna placa</b>. Lo que se midió es BP sobre la matriz de una ronda, no el decodificador completo con OSD. El banco de pruebas ${R.testbench_executed ? "se ejecutó" : "se genera pero no se ejecutó aquí"}: no hay simulador Verilog en esta máquina; el RTL se corrió traducido a C++ con Yosys.`;
+    const dl = $("#s-dl"); dl.innerHTML = "";
+    h.rtl_files.forEach(f => { const a = document.createElement("a"); a.className = "chip"; a.href = "/api/v1/rtl/file/" + f; a.setAttribute("download", f); a.textContent = f.startsWith("tb_") ? "Banco de pruebas" : f.endsWith("_in.mem") ? "Síndromes (.mem)" : f.endsWith("_out.mem") ? "Resultados esperados (.mem)" : "Descargar el .sv"; dl.appendChild(a); });
+    const lib = $("#s-lib"); lib.innerHTML = "";
+    [["Coinciden con el C++", `${loc(R.bit_exact.rtl_vs_cpp.vectors)} de ${loc(R.shots)} síndromes`], ["Ciclos por síndrome: mediana, p95, máximo", `${Math.round(cy.p50)} · ${Math.round(cy.p95)} · ${cy.max}`], ["Fórmula de ciclos", `${cy.formula}, exacta en todos`],
+     ["A 250 MHz nominales: mediana, máximo", `${fx(c250.p50, 3)} · ${fx(c250.max, 3)} µs`], ["A 400 MHz nominales: mediana, máximo", `${fx(c400.p50, 3)} · ${fx(c400.max, 3)} µs`],
+     ["Bits de registro", reg ? loc(reg) : "—"], ["Compuertas genéricas, cota superior", syn ? loc(syn.combinational_gates_total) : "—"]]
+      .forEach(([a, b]) => lib.insertAdjacentHTML("beforeend", `<span>${a}</span><span class="n">${b}</span>`));
+    if (syn) lib.insertAdjacentHTML("beforeend", `<span>Qué es ese número</span><span>Síntesis genérica de Yosys sin optimizar; no es un conteo de LUT ni de ninguna placa.</span>`);
+    const sl = $("#s-i"), ex = $("#s-ex"); ex.innerHTML = ""; $("#s-nv").textContent = loc(R.shots); sl.max = R.shots - 1;
+    const E = h.rtl_examples || {}, go = i => { sl.value = i; load(); };
+    [["no_iterations", "Sin ruido que corregir"], ["typical", "Uno típico"], ["slowest_converging", "El más lento que converge"], ["not_converged", "Uno que no converge"]].forEach(([k, l]) => { if (E[k] != null) chip(ex, l, false, () => go(E[k])); });
+    let tm = 0, seq = 0;
+    function load() {
+      const i = +sl.value, my = ++seq; $("#s-iv").textContent = loc(i); sl.setAttribute("aria-valuetext", `síndrome ${i}`);
+      fetch("/api/v1/rtl/vector/" + i).then(r => r.json()).then(v => { if (my === seq) draw(v); }).catch(() => { $("#s-lec").textContent = "No se pudo leer ese síndrome."; });
+    }
+    function draw(v) {
+      $("#s-lec").innerHTML = `${v.syndrome_weight} chequeos encendidos por ${v.error_weight} errores. ${v.converged ? `Convergió en <b>${v.iterations}</b> iteraciones` : `<b>No convergió</b> tras ${v.iterations} iteraciones, con ${v.residual_syndrome_weight} chequeos sin satisfacer`}: <b>${v.cycles} ciclos</b>, ${fx(v.us_at["250MHz"], 3)} µs a 250 MHz nominales. ${v.identical_to_cpp_kernel ? "El núcleo C++ da exactamente lo mismo." : "<b>El núcleo C++ NO da lo mismo.</b>"}`;
+      const svg = $("#s-tr"); svg.innerHTML = ""; const W = 700, M = {l: 46, r: 12, t: 22, b: 40}, u = v.unsatisfied_per_iteration, n = u.length, mx = Math.max(1, ...u), bw = (W - M.l - M.r) / Math.max(n, 6);
+      const Y = c => 250 - M.b - c / mx * (250 - M.b - M.t - 8);
+      se("line", {x1: M.l, x2: W - M.r, y1: Y(0), y2: Y(0), stroke: C.lino, opacity: .4}, svg);
+      txt(M.l - 8, Y(mx) + 4, String(mx), "end", svg); txt(M.l - 8, Y(0) + 4, "0", "end", svg); txt(M.l, 14, "chequeos sin satisfacer", "start", svg);
+      u.forEach((c, k) => { const x = M.l + k * bw + bw * .12, last = k === n - 1;
+        se("rect", {x, y: Math.min(Y(c), Y(0) - (c || !last ? 0 : 3)), width: bw * .76, height: Math.max(c || last ? 3 : 0, Y(0) - Y(c)), fill: last ? (v.converged ? C.ok : C.mal) : C.x, opacity: last ? 1 : .8}, svg);
+        if (n <= 16 || k % 5 === 0 || last) txt(x + bw * .38, 250 - M.b + 16, String(k), "middle", svg); });
+      txt((M.l + W - M.r) / 2, 246, "iteración", "middle", svg);
+      svg.setAttribute("aria-label", `Chequeos sin satisfacer en cada iteración: ${u.join(", ")}`);
+    }
+    sl.addEventListener("input", () => { $("#s-iv").textContent = loc(+sl.value); clearTimeout(tm); tm = setTimeout(load, 90); });
+    load();
+  }
+
+  Live.hardware().then(h => { seccionDistancia(h); seccionCompuertas(h); seccionVentana(h); seccionSilicio(h);
+    $("#honest").insertAdjacentHTML("beforeend", "<p>Del código al silicio: la distancia de circuito, las compuertas y la ventana fusionada son mediciones guardadas. El RTL se ejecutó ciclo a ciclo pero <b>no se sintetizó para ninguna placa</b>, así que no hay frecuencia ni consumo medidos. Lo que se dice de las frecuencias de 250 y 400 MHz es una conversión nominal.</p>"); }).catch(e => console.error("Tars: falló la sección de hardware", e));
 })();

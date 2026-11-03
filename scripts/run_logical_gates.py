@@ -13,7 +13,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from algebra.logical_gates import enumerate_translation_gates   # noqa: E402
+from algebra.logical_gates import enumerate_translation_gates, translation_perm, verify_in_memory_circuit   # noqa: E402
+from api.services import get_layers                                    # noqa: E402
 from algebra.qldpc import get_code                              # noqa: E402
 
 
@@ -32,13 +33,20 @@ def main():
         checked = sum(r["stim"]["logical_predictions_checked"] for r in classes)
         bad = sum(r["stim"]["logical_prediction_mismatches"] for r in classes)
         all_ok = all(r["stim"]["effective_perm_matches"] and r["stim"]["code_space_preserved"] for r in classes)
-        out[name] = {"n": code.n, "k": code.k, "l": code.meta["l"], "m": code.meta["m"], "translations_tested": len(res),
+        layers = get_layers(name, "interleaved")
+        mem = [verify_in_memory_circuit(code, layers, {1: translation_perm(code, *r["shift"])}, rounds=4, shots=32)
+               for r in res if r["automorphism"]]
+        out_mem = {"schedule_layers": len(layers), "rounds": 4, "gate_after_round": 1, "gates_inserted": len(mem),
+                   "violations_total": sum(x["violations"] for x in mem), "gauge_detectors": sum(x["gauge_detectors"] for x in mem),
+                   "noiseless_shots_each": mem[0]["noiseless_shots"] if mem else 0}
+        out[name] = {"in_memory_circuit": out_mem, "n": code.n, "k": code.k, "l": code.meta["l"], "m": code.meta["m"], "translations_tested": len(res),
                      "automorphisms": sum(1 for r in res if r["automorphism"]),
                      "nontrivial_logical_gates": len(nontriv), "distinct_logical_matrices": len(classes),
                      "stim_predictions_checked": checked, "stim_mismatches": bad, "stim_code_space_preserved": all_ok,
                      "seconds": round(time.perf_counter() - t0, 2),
                      "examples": [{"shift": r["shift"], "u_z_ones": r["u_z_ones"], "u_z": r["u_z"]} for r in classes[:3]]}
         print(f'{name}: {out[name]["automorphisms"]}/{len(res)} automorphisms, {len(nontriv)} nontrivial, {len(classes)} distinct U, '
+              f'in-circuit ({len(layers)} layers): {out_mem["gates_inserted"]} gates, {out_mem["violations_total"]} violations, {out_mem["gauge_detectors"]} gauge detectors | '
               f'stim {checked} checks / {bad} mismatches, code space ok={all_ok}, {out[name]["seconds"]} s', flush=True)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(out, indent=1), encoding="utf-8")

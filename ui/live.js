@@ -59,6 +59,7 @@ window.Live = (() => {
     codes: () => get("codes", "/api/v1/codes").then(j => j.codes),
     code: name => api.codes().then(cs => cs.find(c => c.name === name)),
     bench: () => get("bench", "/api/v1/benchmarks"),
+    hardware: () => get("hw", "/api/v1/hardware"),
     rm: matchMedia("(prefers-reduced-motion: reduce)").matches};
   return api;
 })();

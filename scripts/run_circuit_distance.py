@@ -27,21 +27,23 @@ def main():
     ap.add_argument("--rounds", type=int, default=3)
     ap.add_argument("--time", type=float, default=120.0, help="MILP time limit per schedule, seconds")
     ap.add_argument("--basis", default="Z")
+    ap.add_argument("--max-weight", type=int, default=None, help="decision problem: is there an undetected logical fault of weight <= W?")
+    ap.add_argument("--schedules", nargs="*", default=["interleaved", "sequential"])
     ap.add_argument("--out", default=str(ROOT / "results" / "circuit_distance.json"))
     a = ap.parse_args()
     code = code_of(a.code)
     out_path = Path(a.out)
     data = json.loads(out_path.read_text(encoding="utf-8")) if out_path.exists() else {"runs": []}
-    for sched in ("interleaved", "sequential"):
+    for sched in a.schedules:
         layers = get_layers(a.code, sched)
         exp = build_memory_experiment(code, a.rounds, NoiseModel.uniform(1e-3), basis=a.basis, layers=layers)
         dem = exp.dem()
         t0 = time.perf_counter()
-        r = compute_circuit_distance(dem, time_limit=a.time)
+        r = compute_circuit_distance(dem, time_limit=a.time, max_weight=a.max_weight)
         r.update(code=a.code, schedule=sched, cnot_layers=len(layers), rounds=a.rounds, basis=a.basis,
                  distance_code=(code.meta.get("published_d") or code.meta.get("d")) if hasattr(code, "meta") else None, wall_seconds=time.perf_counter() - t0)
         r.pop("witness", None) if len(r.get("witness", [])) > 40 else None
-        data["runs"] = [x for x in data["runs"] if not (x["code"] == a.code and x["schedule"] == sched and x["rounds"] == a.rounds and x["basis"] == a.basis)]
+        data["runs"] = [x for x in data["runs"] if not (x["code"] == a.code and x["schedule"] == sched and x["rounds"] == a.rounds and x["basis"] == a.basis and x.get("max_weight") == a.max_weight)]
         data["runs"].append(r)
         print(f'{a.code} {sched:11s} layers={len(layers):2d} rounds={a.rounds} mech={r["n_mechanisms"]} det={r["n_detectors"]} '
               f'd_circ in [{r.get("d_lower")}, {r.get("d_upper")}] certified={r.get("certified")} {r["seconds"]:.1f}s | {r["status"][:60]}', flush=True)

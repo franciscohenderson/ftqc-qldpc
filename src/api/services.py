@@ -21,7 +21,7 @@ from circuits.schedule import sequential_schedule
 
 ROOT = Path(__file__).resolve().parents[2]
 CODE_NAMES = list(BB_ZOO)
-MACHINE = "AMD Ryzen 5 5600G (6C/12T), AVX2 (no AVX-512), Windows 11, Python 3.14, C++20 via clang (zig c++), 16 x int16 SIMD lanes"
+MACHINE = "Desktop processor (6C/12T) with AVX2 (no AVX-512), Windows 11, Python 3.14, C++20 via clang (zig c++), 16 x int16 SIMD lanes"
 _sched_lock = threading.Lock()
 
 
@@ -243,3 +243,76 @@ def benchmarks() -> dict:
                     "Thresholds are crossing estimates from finite-shot 6-round experiments on four small codes and depend on the noise model and decoder.",
                 ]}
         return _BENCH_CACHE
+
+
+# ---------------------------------------------------------------------------------------------------- hardware studio
+RTL_FILES = ("tars_bp_bb72_hz.sv", "tars_bp_bb72_hz_in.mem", "tars_bp_bb72_hz_out.mem", "tb_tars_bp_bb72_hz.sv")
+
+
+def _json(name: str):
+    p = ROOT / "results" / name
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+
+def hardware() -> dict:
+    """Everything measured by Stages 1-3, straight from results/*.json (nothing is computed or invented here)."""
+    cd = _json("circuit_distance.json") or {"runs": []}
+    dec = _json("circuit_distance_decision.json") or {"runs": []}
+    for r in cd["runs"] + dec["runs"]:
+        r.pop("witness", None)
+        r["distance_code"] = r.get("distance_code") or code_of(r["code"]).meta.get("published_d")
+    wf = _json("window_fused.json") or {"runs": []}
+    rtl = _json("rtl_bitexact.json")
+    if rtl:
+        rtl.pop("note", None)
+    ex = _rtl_examples() if rtl else {}
+    return {"circuit_distance": cd["runs"], "circuit_distance_decision": dec["runs"], "logical_gates": _json("logical_gates.json") or {},
+            "window_fused": wf["runs"], "rtl": rtl, "rtl_examples": ex, "rtl_files": [f for f in RTL_FILES if (ROOT / "exports" / "rtl" / f).exists()]}
+
+
+@lru_cache(maxsize=1)
+def _rtl_examples() -> dict:
+    """Indices worth looking at: the quickest, a typical one, the slowest converging one and the first that does not converge."""
+    from hardware.rtl_sim import bp_fixed
+    r, code, dec, syn, _ = _rtl_setup()
+    _, it, conv, cyc = bp_fixed(code.hz, dec.channel_llr(), syn, r["max_iter"])
+    ok = np.flatnonzero(conv)
+    nok = np.flatnonzero(~conv)
+    mid = ok[np.argsort(cyc[ok])[len(ok) // 2]]
+    return {"no_iterations": int(np.flatnonzero(cyc == cyc.min())[0]), "typical": int(mid),
+            "slowest_converging": int(ok[np.argmax(cyc[ok])]), "not_converged": int(nok[0]) if len(nok) else None}
+
+
+@lru_cache(maxsize=1)
+def _rtl_setup():
+    from decoder.fast import FastDecoder
+    r = _json("rtl_bitexact.json")
+    if not r:
+        raise FileNotFoundError("results/rtl_bitexact.json (run scripts/run_rtl.py)")
+    code = code_of(r["code"])
+    dec = FastDecoder(code.hz, 0.02, max_iter=r["max_iter"])
+    rng = np.random.default_rng(r["seed"])
+    err = (rng.random((r["shots"], code.n)) < r["p_x"]).astype(np.uint8)
+    return r, code, dec, ((err @ code.hz.T) % 2).astype(np.uint8), err
+
+
+def rtl_vector(i: int) -> dict:
+    """One of the test syndromes through the bit-exact model, with the per-iteration trace, checked live against the C++ kernel."""
+    from hardware.rtl_sim import bp_fixed
+    r, code, dec, syn, err = _rtl_setup()
+    if not 0 <= i < len(syn):
+        raise IndexError(i)
+    ch = dec.channel_llr()
+    trace: list = []
+    post, it, conv, cyc = bp_fixed(code.hz, ch, syn[i:i + 1], r["max_iter"], trace)
+    cpost, cit, cst = dec.bp_posterior(syn[i])
+    k = int(it[0])
+    hard = (post[0] < 0).astype(np.uint8)
+    return {"index": i, "shots": len(syn), "code": r["code"], "checks": code.hz.shape[0], "variables": code.n,
+            "syndrome_weight": int(syn[i].sum()), "error_weight": int(err[i].sum()), "iterations": k, "max_iter": r["max_iter"],
+            "converged": bool(conv[0]), "cycles": int(cyc[0]), "cycles_formula": "2*iterations + 2",
+            "unsatisfied_per_iteration": [int(t[0]) for t in trace[:k + 1]],
+            "us_at": {f"{f}MHz": float(cyc[0]) / f for f in (250, 400)},
+            "hard_decision_weight": int(hard.sum()),
+            "residual_syndrome_weight": int(((code.hz @ hard) % 2 ^ syn[i]).sum()),
+            "identical_to_cpp_kernel": bool(np.array_equal(post[0], cpost) and k == cit and (cst == 0) == bool(conv[0]))}
