@@ -9,7 +9,7 @@
 <style>html{background:#18225a}:focus-visible{outline:2px solid #f6bd44;outline-offset:3px}</style>
 <title>Tars · el decodificador, en vivo</title>
 <link rel="preload" href="/ui/fonts/familjen-grotesk.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/ui/tars.css?v=10">
+<link rel="stylesheet" href="/ui/tars.css?v=12">
 </head>
 <body>
 <header class="bar">
@@ -36,7 +36,7 @@
 
   <div class="uno" id="uno" hidden>
     <div class="gran">
-      <canvas class="tejido" id="cv" aria-label="Retícula del código: clavos (qubits) y chequeos"></canvas><div class="tip" id="tip"></div>
+      <div class="lienzo-grande"><canvas class="tejido" id="cv" aria-label="Retícula del código: clavos (qubits) y chequeos"></canvas><div class="tip" id="tip"></div></div>
       <button class="volver" id="volver">Volver a los cinco</button>
       <div class="nombre"><h2 id="nom1">BB72</h2><p id="par1"></p></div>
       <div class="lectura">
@@ -110,7 +110,7 @@
 
 <footer id="honest"></footer>
 
-<script src="/ui/live.js?v=10"></script>
-<script src="/ui/tars.js?v=10"></script>
+<script src="/ui/live.js?v=12"></script>
+<script src="/ui/tars.js?v=12"></script>
 </body>
 </html>

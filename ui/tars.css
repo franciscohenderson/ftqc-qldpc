@@ -11,8 +11,8 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html{scroll-behavior:smooth;background:var(--fondo)}
-body{margin:0;background:var(--fondo);color:var(--lino);font:400 16px/1.5 var(--f);-webkit-font-smoothing:antialiased}
+html{scroll-behavior:smooth;background:var(--fondo);font-size:clamp(16px,.55vw + 8px,26px)}
+body{margin:0;background:var(--fondo);color:var(--lino);font:400 1rem/1.5 var(--f);-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
 :focus-visible{outline:2px solid var(--sint);outline-offset:3px}
 .n{font-family:var(--m);font-variant-numeric:tabular-nums}
@@ -46,7 +46,7 @@ h1,h2,h3,p{margin:0}
 .card .dato .l{font-size:.86rem;color:var(--lino2)}
 .cifra{font-family:var(--m);font-weight:300;letter-spacing:-.06em;line-height:.95;font-variant-numeric:tabular-nums}
 .cifra small{font:500 .34em var(--m);letter-spacing:0;margin-left:.35em;color:var(--lino2)}
-.card .cifra{font-size:clamp(1.9rem,3.3vw,3.4rem)}
+.card .cifra{font-size:clamp(1.9rem,3.3vw,4rem)}
 .card .chico{margin-top:6px;padding-right:38px;font-size:.84rem;color:var(--lino2);min-height:2.4em}
 .card .chico b{color:var(--lino);font-weight:600}
 .card .ir{position:absolute;right:clamp(10px,1.2vw,20px);bottom:12px;width:26px;height:26px;border:1px solid var(--linea2);transition:background .2s,border-color .2s}
@@ -72,6 +72,7 @@ h1,h2,h3,p{margin:0}
 .uno{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(280px,26vw,400px);grid-template-rows:minmax(0,1fr) clamp(120px,21vh,200px)}
 .uno[hidden]{display:none}
 .uno .gran{position:relative;grid-row:1;grid-column:1;min-height:0}
+.uno .lienzo-grande{position:absolute;inset:0}
 .uno .gran canvas.tejido{position:absolute;inset:0;width:100%;height:100%}
 .uno .lectura{position:absolute;left:var(--pad);bottom:14px;max-width:min(520px,38%);pointer-events:none}
 .uno .lectura .tit{font-size:1rem;color:var(--lino2);margin-bottom:6px}
@@ -122,7 +123,13 @@ footer .tit{font-weight:700;color:var(--lino);font-size:1.4rem;letter-spacing:-.
   .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
   .cinco{grid-template-rows:auto auto 150px}.stage{height:auto}
   .card{min-height:300px;border-bottom:1px solid var(--linea)}
-  .uno{position:relative;display:block}.uno .gran{height:min(100vw,560px)}.lado{border-left:0;border-top:1px solid var(--linea)}
+  .uno{position:relative;display:block}.lado{border-left:0;border-top:1px solid var(--linea)}
+  .uno .gran{height:auto;display:flex;flex-direction:column;gap:10px;padding:14px 0 10px}
+  .uno .volver{position:static;order:0;margin:0 var(--pad);align-self:flex-start}
+  .uno .nombre{position:static;order:1;max-width:none;padding:0 var(--pad)}
+  .uno .lienzo-grande{position:relative;inset:auto;order:2;height:min(100vw,520px)}
+  .uno .lectura{position:static;order:3;max-width:none;padding:0 var(--pad)}
+  .uno .lectura .cifra{font-size:clamp(3rem,18vw,6rem)}
   .uno .hist{height:150px}.seccion{grid-template-columns:1fr}
 }
 @media (max-width:640px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.bar .lema{display:none}}

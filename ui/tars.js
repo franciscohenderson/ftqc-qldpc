@@ -81,8 +81,8 @@
           g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.moveTo(x + dx / m * 12, y + dy / m * 12); g.lineTo(tx, ty); g.stroke();
           if (tx < this.W * .5 && ty > this.H * .68) return;   // ese rincón es del texto de lectura
           g.fillStyle = col; g.textAlign = dx < 0 ? "right" : "left"; g.fillText(txt, tx + (dx < 0 ? -6 : 6), ty); };
-        [...L.errX.map(q => [q, C.mal]), ...L.errZ.map(q => [q, C.x])].slice(0, 4).forEach(([q, col]) => lab(q, `falla en q${q}`, col, 34));
-        if (ease((age - 1.1) / .5) > .5) [...L.corrX, ...L.corrZ].slice(0, 4).forEach(q => lab(q, `q${q} corregido`, C.ok, 58));
+        [...L.errX.map(q => [q, C.mal]), ...L.errZ.map(q => [q, C.x])].slice(0, 4).forEach(([q, col]) => lab(q, this.W < 520 ? `q${q}` : `falla en q${q}`, col, this.W < 520 ? 22 : 34));
+        if (ease((age - 1.1) / .5) > .5) [...L.corrX, ...L.corrZ].slice(0, 4).forEach(q => lab(q, this.W < 520 ? `q${q} ok` : `q${q} corregido`, C.ok, this.W < 520 ? 40 : 58));
         g.globalAlpha = 1; g.textBaseline = "alphabetic";
       }
       if (this.hov) {
