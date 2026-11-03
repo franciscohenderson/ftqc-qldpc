@@ -61,6 +61,25 @@ PYTHONPATH=src python -m uvicorn api.server:app --app-dir src --port 8000   # li
 
 The fast tier needs AVX2, so Apple Silicon (ARM) is not supported yet. Reports from other platforms are welcome as issues. `docs/assets/` is produced by `node scripts/capture_assets.mjs`.
 
+## Verify the claims yourself
+
+```powershell
+pip install -e ".[build,verify]"      # ziglang (C++ compiler), yowasp-yosys, z3-solver
+tars-verify                           # ~1-3 minutes; add --quick to skip the RTL execution and the formal proofs
+```
+
+It re-checks, on your machine, the hardware-facing claims, and prints PASS / FAIL / SKIP for each (a skipped check is never reported as a pass):
+
+| check | what it shows |
+|---|---|
+| `manifest` | the committed SystemVerilog, test vectors and testbench match their SHA-256 (`exports/rtl/MANIFEST.sha256`), and the `.sv` is exactly what the generator emits |
+| `model` | an independent int16 model of the BP kernel equals the production AVX2 kernel on noisy syndromes: posteriors, hard decisions, iterations |
+| `gates` | translation automorphisms of BB72 act as logical gates and, inserted between rounds of the 7-layer extraction circuit, keep every Stim detector deterministic |
+| `rtl` | the generated SystemVerilog, executed clock edge by clock edge (Yosys to CXXRTL), equals the C++ kernel; cycles = 2 x iterations + 2 |
+| `formal` | the check-node, variable-node and stop-test blocks equal the C++ semantics for **every** input, proved with z3; seven planted bugs are all caught (`tests/test_formal.py`) |
+
+What this does **not** show: no FPGA or ASIC flow was run, so there is no clock frequency, LUT count or power figure; the formal proof covers the combinational blocks, not the register sequencing; the circuit-level distance of the 7-layer schedule is only bounded (BB72: between 3 and 5), see `docs/WHITEPAPER.md` section 9A.
+
 ## Architecture
 
 ```mermaid

@@ -1,0 +1,25 @@
+{
+ "python": "3.14.6",
+ "platform": "Windows-11-10.0.26200-SP0",
+ "checks": [
+  {
+   "name": "manifest",
+   "status": "PASS",
+   "seconds": 0.2,
+   "detail": "4 files match their SHA-256 and the .sv equals a fresh generator run"
+  },
+  {
+   "name": "model",
+   "status": "PASS",
+   "seconds": 0.2,
+   "detail": "60 syndromes (58 converge, 2 do not): 0 mismatches vs the production C++ kernel"
+  },
+  {
+   "name": "gates",
+   "status": "PASS",
+   "seconds": 3.8,
+   "detail": "6 translations of BB72 as logical gates, inside the 7-layer circuit: 0 violations"
+  }
+ ],
+ "failed": 0
+}
