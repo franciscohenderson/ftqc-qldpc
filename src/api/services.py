@@ -267,7 +267,7 @@ def hardware() -> dict:
         rtl.pop("note", None)
     ex = _rtl_examples() if rtl else {}
     return {"circuit_distance": cd["runs"], "circuit_distance_decision": dec["runs"], "logical_gates": _json("logical_gates.json") or {},
-            "window_fused": wf["runs"], "rtl": rtl, "rtl_examples": ex, "rtl_files": [f for f in RTL_FILES if (ROOT / "exports" / "rtl" / f).exists()]}
+            "window_fused": wf["runs"], "rtl": rtl, "rtl_formal": _json("rtl_formal.json"), "rtl_examples": ex, "rtl_files": [f for f in RTL_FILES if (ROOT / "exports" / "rtl" / f).exists()]}
 
 
 @lru_cache(maxsize=1)

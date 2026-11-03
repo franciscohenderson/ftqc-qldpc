@@ -87,5 +87,22 @@ def _rtl() -> list[str]:
     return out + [""]
 
 
+def _formal() -> list[str]:
+    f = _load("rtl_formal.json")
+    if not f:
+        return []
+    cn = f["checks"][0]
+    vn = "; ".join(f"degree {v['degree']}, channel LLR {v['channel_llr']}: equivalent {v['equivalent_for_all_inputs']}, "
+                   f"posterior always within +-8000: {v['posterior_always_within_llr_max']}" for v in f["variables"])
+    return ["## Formal proof of the generated RTL blocks (scripts/run_formal.py; z3 on SMT-LIB exported by Yosys)", "",
+            f"* Scope: {f['scope']}.",
+            f"* All blocks proved: {f['all_proved']}. Check node degree {cn['degree']}: equivalent to the C++ semantics for every 16-bit input "
+            f"({cn['inputs_bits']} input bits), {cn['equivalence_seconds']:.1f} s of solver time over 3 stages; range lemmas hold ({cn['range_lemmas']}).",
+            f"* Variable nodes: {vn}.",
+            f"* Stop test ({f['stop_test']['checks']} checks, {f['stop_test']['variables']} variables): equivalent {f['stop_test']['equivalent_for_all_inputs']}.",
+            "* Non-vacuity: tests/test_formal.py plants 7 bugs in the RTL (tie-break, alpha, second minimum, syndrome sign, clamp, unsaturated add, "
+            "dropped stop-test term); the proof finds a counterexample for every one.", ""]
+
+
 def hardware_facts() -> str:
-    return "\n".join(_distance() + _gates() + _window() + _rtl()) + "\n"
+    return "\n".join(_distance() + _gates() + _window() + _rtl() + _formal()) + "\n"

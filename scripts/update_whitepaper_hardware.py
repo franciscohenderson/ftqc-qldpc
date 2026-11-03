@@ -8,10 +8,13 @@ replaced in place on every run.
 from __future__ import annotations
 
 import json
+import sys
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+from wp_formal import formal_block  # noqa: E402
 BEGIN, END = "<!-- HW-BEGIN -->", "<!-- HW-END -->"
 
 
@@ -125,7 +128,7 @@ def main():
     dist, info = distance_block()
     section = "\n".join([BEGIN, "## 9A. Circuit Distance, Zero-Cost Logical Gates, a Fused Window Loop and an Executable RTL", "",
                          "This section collects four measurements made after the main study; each is reproducible from the scripts named in it.", "",
-                         dist, gates_block(), window_block(), rtl_block(), END, ""])
+                         dist, gates_block(), window_block(), rtl_block(), formal_block(), END, ""])
     p = ROOT / "docs" / "WHITEPAPER.md"
     s = p.read_text(encoding="utf-8")
     if BEGIN in s:

@@ -555,6 +555,14 @@ There is no Verilog simulator or FPGA on the development machine. We therefore e
 
 The 250 and 400 MHz rows only divide RTL cycles by an assumed clock. **No FPGA or ASIC flow was run, so no achievable clock frequency, LUT count, power or timing is claimed.** The gate count comes from a per-block generic synthesis (one check-node and one variable-node block per distinct degree, multiplied by the instance count) because ABC and LUT mapping do not run in the WebAssembly Yosys; it is an unoptimised upper bound. The scope is BP on the single-round code-capacity matrix, not the circuit-level windowed decoder with OSD. The generated self-checking testbench and the `.mem` vectors are provided for any external simulator but were not executed here.
 
+### 9A.5 Formal Equivalence of the RTL Blocks
+
+Executing the RTL on 1000 vectors shows agreement on those vectors only. We therefore also proved the blocks equivalent to the C++ semantics for **every** input value. Yosys exports each combinational block of the generated SystemVerilog to SMT-LIB; the specification is written as bit-vector terms that follow `qdecoder.cpp` operation by operation; the z3 solver is asked for an input on which they differ, and `unsat` is the proof (`src/hardware/formal.py`, `scripts/run_formal.py`). The check node of degree 6 (193 input bits) is proved in three stages (saturating difference; running first and second minimum with index and sign; normalisation and output) in 6.7 s of solver time. The variable nodes (degree 3 with channel LLR 62) and the stop test (36 checks) are proved the same way. A range lemma shows that, whenever $|\mathrm{tot}| \le 8000$ and $|r| \le 24576$, the difference $q$ never saturates, $q$ is never $-32768$ (so the absolute value never wraps), and every new message again satisfies $|r| \le 24576$; posteriors are clamped to $\pm 8000$, so these bounds are an inductive invariant.
+
+To check that the proof is not vacuous, `tests/test_formal.py` plants seven bugs in the RTL (a non-strict comparison, $\alpha = 0.875$, no second minimum, a dropped syndrome sign, a clamp of 8001, an unsaturated addition, a dropped term in the stop test) and requires a counterexample for each; the solver finds all seven.
+
+**Scope.** Proved: the combinational blocks, as functions, for all inputs. Not proved: the register and control sequencing and the wiring between blocks, which rest on the execution of the whole design against the C++ kernel (Section 9A.4). The specification is itself a transcription of the C++ and is validated by that same execution. We claim formally verified datapath blocks of one decoder, not a formally verified decoder.
+
 <!-- HW-END -->
 
 ---

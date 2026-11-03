@@ -341,6 +341,14 @@ Same Stim samples (seed 2026, 6 rounds, p = 2e-3), best of 3 wall-clock runs per
 * Size: 4665 register bits (exact); 166895 generic 2-input gates from per-block Yosys synthesis (no ABC, no LUT mapping: an upper bound, not an FPGA report); deepest block 163 gates.
 * The generated testbench was executed: False (no Verilog simulator is available on this machine).
 
+## Formal proof of the generated RTL blocks (scripts/run_formal.py; z3 on SMT-LIB exported by Yosys)
+
+* Scope: check node (per degree), variable node (per degree and channel LLR) and stop test, as combinational functions, for every 16-bit input; range lemmas for the check node; NOT the register/FSM sequencing or the wiring between blocks (covered by executing the whole RTL).
+* All blocks proved: True. Check node degree 6: equivalent to the C++ semantics for every 16-bit input (193 input bits), 6.7 s of solver time over 3 stages; range lemmas hold (with |tot| <= 8000 and |r| <= 24576: q = tot - r never saturates, q is never -32768 (so |q| never wraps), and every output has |r_new| <= 24576).
+* Variable nodes: degree 3, channel LLR 62: equivalent True, posterior always within +-8000: True.
+* Stop test (36 checks, 72 variables): equivalent True.
+* Non-vacuity: tests/test_formal.py plants 7 bugs in the RTL (tie-break, alpha, second minimum, syndrome sign, clamp, unsaturated add, dropped stop-test term); the proof finds a counterexample for every one.
+
 
 ## Other measured facts
 

@@ -1,0 +1,55 @@
+{
+ "checks": [
+  {
+   "block": "cn_deg6",
+   "degree": 6,
+   "inputs_bits": 193,
+   "stages": {
+    "A_q_is_saturating_difference": {
+     "status": "unsat",
+     "seconds": 0.01,
+     "proved": true
+    },
+    "B_minimum_chain": {
+     "status": "unsat",
+     "seconds": 2.21,
+     "proved": true
+    },
+    "C_output_stage": {
+     "status": "unsat",
+     "seconds": 4.44,
+     "proved": true
+    }
+   },
+   "equivalent_for_all_inputs": true,
+   "range_lemmas_hold": true,
+   "range_seconds": 0.83,
+   "range_lemmas": "with |tot| <= 8000 and |r| <= 24576: q = tot - r never saturates, q is never -32768 (so |q| never wraps), and every output has |r_new| <= 24576",
+   "equivalence_seconds": 6.66
+  }
+ ],
+ "variables": [
+  {
+   "block": "vn_deg3",
+   "degree": 3,
+   "channel_llr": 62,
+   "equivalent_for_all_inputs": true,
+   "equivalence_status": "unsat",
+   "equivalence_seconds": 0.0,
+   "posterior_always_within_llr_max": true
+  }
+ ],
+ "stop_test": {
+  "block": "stop_test",
+  "checks": 36,
+  "variables": 72,
+  "equivalent_for_all_inputs": true,
+  "equivalence_status": "unsat",
+  "equivalence_seconds": 0.01
+ },
+ "all_proved": true,
+ "code": "BB72",
+ "matrix": "H_Z",
+ "z3": "z3-solver",
+ "scope": "check node (per degree), variable node (per degree and channel LLR) and stop test, as combinational functions, for every 16-bit input; range lemmas for the check node; NOT the register/FSM sequencing or the wiring between blocks (covered by executing the whole RTL)"
+}

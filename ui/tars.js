@@ -415,6 +415,8 @@
      ["A 250 MHz nominales: mediana, máximo", `${fx(c250.p50, 3)} · ${fx(c250.max, 3)} µs`], ["A 400 MHz nominales: mediana, máximo", `${fx(c400.p50, 3)} · ${fx(c400.max, 3)} µs`],
      ["Bits de registro", reg ? loc(reg) : "—"], ["Compuertas genéricas, cota superior", syn ? loc(syn.combinational_gates_total) : "—"]]
       .forEach(([a, b]) => lib.insertAdjacentHTML("beforeend", `<span>${a}</span><span class="n">${b}</span>`));
+    const F = h.rtl_formal;
+    if (F) lib.insertAdjacentHTML("afterbegin", `<span><b>Demostrado para todas las entradas</b></span><span>${F.all_proved ? "Nodo de chequeo de grado " + F.checks[0].degree + " (" + loc(F.checks[0].inputs_bits) + " bits de entrada), nodos de variable y prueba de parada: equivalentes a la especificación del C++, con un solver (z3). Probado en " + fx(F.checks[0].equivalence_seconds, 1) + " s. No cubre la secuencia de registros ni el cableado entre bloques." : "Hay un bloque que NO se pudo demostrar."}</span>`);
     if (syn) lib.insertAdjacentHTML("beforeend", `<span>Qué es ese número</span><span>Síntesis genérica de Yosys sin optimizar; no es un conteo de LUT ni de ninguna placa.</span>`);
     const sl = $("#s-i"), ex = $("#s-ex"); ex.innerHTML = ""; $("#s-nv").textContent = loc(R.shots); sl.max = R.shots - 1;
     const E = h.rtl_examples || {}, go = i => { sl.value = i; load(); };
