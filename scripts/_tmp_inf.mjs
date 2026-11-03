@@ -1,0 +1,12 @@
+import path from "node:path";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+const here = path.dirname(fileURLToPath(import.meta.url));
+const { chromium } = createRequire(path.join(here, "pdf", "package.json"))("playwright-core");
+const b = await chromium.launch({ executablePath: "C:\Program Files\Google\Chrome\Application\chrome.exe", headless: true });
+const p = await b.newPage({ viewport: { width: 794, height: 1123 } });
+await p.goto("file:///C:/Users/franc/AppData/Local/Temp/claude/C--Users-franc/3c476efe-08da-471b-9e35-ac9088c07b94/scratchpad/informe/informe.html");
+await p.emulateMedia({ media: "print" });
+await p.screenshot({ path: "C:/Users/franc/AppData/Local/Temp/claude/vistas/inf_1.png", clip: { x: 0, y: 0, width: 794, height: 1123 } });
+await p.screenshot({ path: "C:/Users/franc/AppData/Local/Temp/claude/vistas/inf_2.png", clip: { x: 0, y: 1123, width: 794, height: 1123 } });
+await b.close();

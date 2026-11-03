@@ -1,0 +1,276 @@
+{
+ "runs": [
+  {
+   "code": "BB72",
+   "p": 0.002,
+   "rounds": 6,
+   "shots": 1024,
+   "single_shots": 96,
+   "seed": 2026,
+   "dem": {
+    "detectors": 252,
+    "mechanisms": 2232
+   },
+   "configs": {
+    "W3F1": {
+     "W": 3,
+     "F": 1,
+     "n_windows": 5,
+     "identical_decisions": true,
+     "logical_failures": 4,
+     "python_loop": {
+      "wall_per_shot_us": 253.48535154989804,
+      "step_batch_us": {
+       "p50_us": 44.87408203125,
+       "p95_us": 67.06458203125,
+       "mean_us": 44.9219794921875
+      },
+      "step_single_us": {
+       "p50_us": 27.7,
+       "p95_us": 381.655,
+       "mean_us": 88.44140625
+      },
+      "reaction_single_us": {
+       "p50_us": 10.2,
+       "p95_us": 42.825,
+       "mean_us": 27.03020833333333
+      }
+     },
+     "fused_cpp": {
+      "wall_per_shot_us": 177.7714843456124,
+      "step_batch_per_shot_us": 37.2629638671875,
+      "reaction_batch_per_shot_us": 10.7705078125,
+      "split_batch_per_shot_us": {
+       "bp": 15.799853515625,
+       "post": 20.93505859375,
+       "prop": 0.5280517578125
+      },
+      "step_single_us": {
+       "p50_us": 29.0,
+       "p95_us": 384.655,
+       "mean_us": 88.55625
+      },
+      "reaction_single_us": {
+       "p50_us": 11.6,
+       "p95_us": 47.375,
+       "mean_us": 29.661458333333332
+      },
+      "split_single_p50_us": {
+       "bp": 28.45,
+       "post": 0.0,
+       "prop": 0.4
+      },
+      "split_reaction_single_p50_us": {
+       "bp": 10.85,
+       "post": 0.0,
+       "prop": 0.7
+      }
+     },
+     "status_counts": [
+      4458,
+      0,
+      662,
+      0
+     ]
+    },
+    "W4F2": {
+     "W": 4,
+     "F": 2,
+     "n_windows": 3,
+     "identical_decisions": true,
+     "logical_failures": 5,
+     "python_loop": {
+      "wall_per_shot_us": 207.29257812490687,
+      "step_batch_us": {
+       "p50_us": 71.9560546875,
+       "p95_us": 106.44158984375,
+       "mean_us": 71.49353125
+      },
+      "step_single_us": {
+       "p50_us": 41.7,
+       "p95_us": 549.22,
+       "mean_us": 125.88645833333332
+      },
+      "reaction_single_us": {
+       "p50_us": 10.25,
+       "p95_us": 43.025,
+       "mean_us": 27.776041666666668
+      }
+     },
+     "fused_cpp": {
+      "wall_per_shot_us": 152.8381835669279,
+      "step_batch_per_shot_us": 61.527685546875,
+      "reaction_batch_per_shot_us": 10.3623046875,
+      "split_batch_per_shot_us": {
+       "bp": 23.39462890625,
+       "post": 37.1453125,
+       "prop": 0.987744140625
+      },
+      "step_single_us": {
+       "p50_us": 40.8,
+       "p95_us": 547.645,
+       "mean_us": 125.6984375
+      },
+      "reaction_single_us": {
+       "p50_us": 13.2,
+       "p95_us": 50.125,
+       "mean_us": 31.301041666666666
+      },
+      "split_single_p50_us": {
+       "bp": 39.8,
+       "post": 0.0,
+       "prop": 0.9
+      },
+      "split_reaction_single_p50_us": {
+       "bp": 11.95,
+       "post": 0.0,
+       "prop": 0.7
+      }
+     },
+     "status_counts": [
+      2697,
+      0,
+      375,
+      0
+     ]
+    }
+   }
+  },
+  {
+   "code": "BB144",
+   "p": 0.002,
+   "rounds": 6,
+   "shots": 1024,
+   "single_shots": 96,
+   "seed": 2026,
+   "dem": {
+    "detectors": 504,
+    "mechanisms": 4464
+   },
+   "configs": {
+    "W3F1": {
+     "W": 3,
+     "F": 1,
+     "n_windows": 5,
+     "identical_decisions": true,
+     "logical_failures": 1,
+     "python_loop": {
+      "wall_per_shot_us": 820.2645507253692,
+      "step_batch_us": {
+       "p50_us": 147.817419921875,
+       "p95_us": 222.49270703125,
+       "mean_us": 149.002271484375
+      },
+      "step_single_us": {
+       "p50_us": 87.9,
+       "p95_us": 871.385,
+       "mean_us": 308.6309895833333
+      },
+      "reaction_single_us": {
+       "p50_us": 33.4,
+       "p95_us": 188.8,
+       "mean_us": 75.946875
+      }
+     },
+     "fused_cpp": {
+      "wall_per_shot_us": 626.4300781140264,
+      "step_batch_per_shot_us": 135.9324462890625,
+      "reaction_batch_per_shot_us": 46.70185546875,
+      "split_batch_per_shot_us": {
+       "bp": 35.644970703125,
+       "post": 99.0935302734375,
+       "prop": 1.1939453125
+      },
+      "step_single_us": {
+       "p50_us": 90.2,
+       "p95_us": 914.08,
+       "mean_us": 315.1002604166667
+      },
+      "reaction_single_us": {
+       "p50_us": 35.9,
+       "p95_us": 217.525,
+       "mean_us": 82.94375
+      },
+      "split_single_p50_us": {
+       "bp": 88.95,
+       "post": 0.1,
+       "prop": 0.9
+      },
+      "split_reaction_single_p50_us": {
+       "bp": 34.6,
+       "post": 0.0,
+       "prop": 1.3
+      }
+     },
+     "status_counts": [
+      3876,
+      0,
+      1244,
+      0
+     ]
+    },
+    "W4F2": {
+     "W": 4,
+     "F": 2,
+     "n_windows": 3,
+     "identical_decisions": true,
+     "logical_failures": 0,
+     "python_loop": {
+      "wall_per_shot_us": 675.3252929456721,
+      "step_batch_us": {
+       "p50_us": 232.0491640625,
+       "p95_us": 336.337921875,
+       "mean_us": 236.67466796875
+      },
+      "step_single_us": {
+       "p50_us": 146.05,
+       "p95_us": 1333.4399999999996,
+       "mean_us": 504.2104166666667
+      },
+      "reaction_single_us": {
+       "p50_us": 33.3,
+       "p95_us": 185.15,
+       "mean_us": 76.78229166666667
+      }
+     },
+     "fused_cpp": {
+      "wall_per_shot_us": 499.1540039327447,
+      "step_batch_per_shot_us": 206.428955078125,
+      "reaction_batch_per_shot_us": 46.523046875,
+      "split_batch_per_shot_us": {
+       "bp": 48.303369140625,
+       "post": 156.29248046875,
+       "prop": 1.83310546875
+      },
+      "step_single_us": {
+       "p50_us": 146.75,
+       "p95_us": 1310.845,
+       "mean_us": 499.86302083333334
+      },
+      "reaction_single_us": {
+       "p50_us": 37.15,
+       "p95_us": 191.925,
+       "mean_us": 84.08229166666668
+      },
+      "split_single_p50_us": {
+       "bp": 144.2,
+       "post": 0.1,
+       "prop": 1.7
+      },
+      "split_reaction_single_p50_us": {
+       "bp": 35.1,
+       "post": 0.0,
+       "prop": 1.3
+      }
+     },
+     "status_counts": [
+      2387,
+      0,
+      685,
+      0
+     ]
+    }
+   }
+  }
+ ]
+}

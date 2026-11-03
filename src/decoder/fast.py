@@ -26,6 +26,10 @@ void qd_decode_batch(void* h, int shots, const uint8_t* synd, uint8_t* out, int*
                      uint8_t* status, uint64_t* latency_ns, int use_osd);
 void qd_decode_stream(void* h, int shots, const uint8_t* synd, uint8_t* out, int* iters,
                       uint8_t* status, uint64_t* bp_ns, uint64_t* total_ns, int use_osd);
+typedef struct { void* dec; int nrows; const int* rows; int ngroups; const int* groups; const int* gcols; int last; } QdWin;
+void qd_window_decode(const QdWin* wins, int nwin, int B, int nDet, int nMech, const int* hc_colptr, const int* hc_rowidx,
+                      uint8_t* syn, uint8_t* err, uint8_t* failed, uint8_t* shot_status,
+                      uint64_t* bp_ns, uint64_t* post_ns, uint64_t* prop_ns, int64_t* counts);
 """
 _ffi = FFI()
 _ffi.cdef(_CDEF)

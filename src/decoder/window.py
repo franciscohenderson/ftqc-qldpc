@@ -66,6 +66,18 @@ class WindowResult:
     status_counts: np.ndarray | None = None       # window decodes by status (summed over windows and shots)
 
 
+@dataclass
+class FusedResult:
+    errors: np.ndarray                 # (B, n_mechanisms) committed correction
+    failed: np.ndarray                 # (B,)
+    residual: np.ndarray               # (B,) syndrome weight left after the last window
+    shot_status: np.ndarray            # (B,) worst window status of each shot
+    bp_ns: np.ndarray                  # (n_windows,) BP time per shot, batch-amortized
+    post_ns: np.ndarray                # (n_windows,) OSD-CS time per shot, batch-amortized
+    prop_ns: np.ndarray                # (n_windows,) propagation time per shot, batch-amortized
+    status_counts: np.ndarray          # window decodes by status
+
+
 class WindowDecoder:
     def __init__(self, prob: DecodingProblem, det_round: np.ndarray, W: int = 3, F: int = 1,
                  max_iter: int = 30, osd_lambda: int = 32):
@@ -160,6 +172,49 @@ class WindowDecoder:
         # residual = detectors still unexplained by the accumulated correction (0 for a fully consistent decode)
         residual = (((self.Hc @ err.T.astype(np.int64)) % 2).T.astype(np.uint8) ^ det).sum(axis=1)
         return WindowResult(err, failed, residual, shot_status, lat, single, counts)
+
+    def decode_batch_fused(self, det: np.ndarray) -> "FusedResult":
+        """Same decisions as ``decode_batch`` with the whole window loop inside one C++ call.
+
+        Returns per-window batch-amortized per-shot times of the three costs: BP, post-processing (OSD-CS on the lanes
+        BP left unsatisfied) and propagation of the committed correction into later rounds.
+        """
+        from .fast import _ffi, _load
+        lib = _load()
+        det = np.ascontiguousarray(det, dtype=np.uint8)
+        B = det.shape[0]
+        if not hasattr(self, "_fused"):
+            keep, specs = [], _ffi.new("QdWin[]", self.n_windows)
+            for k, win in enumerate(self.windows):
+                rows = np.ascontiguousarray(win.rows, dtype=np.int32)
+                groups = np.ascontiguousarray(win.commit_groups, dtype=np.int32)
+                gcols = np.ascontiguousarray(win.commit_cols, dtype=np.int32)
+                keep += [rows, groups, gcols]
+                sp_ = specs[k]
+                sp_.dec = win.decoder._h
+                sp_.nrows = len(rows); sp_.rows = _ffi.cast("const int*", _ffi.from_buffer(rows))
+                sp_.ngroups = len(groups); sp_.groups = _ffi.cast("const int*", _ffi.from_buffer(groups))
+                sp_.gcols = _ffi.cast("const int*", _ffi.from_buffer(gcols)); sp_.last = int(win.last)
+            hcc = sp.csc_matrix(self.H)
+            colptr = np.ascontiguousarray(hcc.indptr, dtype=np.int32)
+            rowidx = np.ascontiguousarray(hcc.indices, dtype=np.int32)
+            self._fused = (specs, keep, colptr, rowidx)
+        specs, keep, colptr, rowidx = self._fused
+        syn = det.copy()
+        err = np.zeros((B, self.H.shape[1]), dtype=np.uint8)
+        failed = np.zeros(B, dtype=np.uint8)
+        status = np.zeros(B, dtype=np.uint8)
+        nw = self.n_windows
+        bp, post, prop = (np.zeros(nw, dtype=np.uint64) for _ in range(3))
+        counts = np.zeros(4, dtype=np.int64)
+        lib.qd_window_decode(specs, nw, B, self.H.shape[0], self.H.shape[1],
+                             _ffi.cast("const int*", _ffi.from_buffer(colptr)), _ffi.cast("const int*", _ffi.from_buffer(rowidx)),
+                             _ffi.from_buffer("uint8_t[]", syn), _ffi.from_buffer("uint8_t[]", err),
+                             _ffi.from_buffer("uint8_t[]", failed), _ffi.from_buffer("uint8_t[]", status),
+                             _ffi.from_buffer("uint64_t[]", bp), _ffi.from_buffer("uint64_t[]", post),
+                             _ffi.from_buffer("uint64_t[]", prop), _ffi.from_buffer("int64_t[]", counts))
+        residual = (((self.Hc @ err.T.astype(np.int64)) % 2).T.astype(np.uint8) ^ det).sum(axis=1)
+        return FusedResult(err, failed.astype(bool), residual, status, bp / B, post / B, prop / B, counts)
 
     def predict_observables(self, errors: np.ndarray) -> np.ndarray:
         return (self.prob.obs @ errors.T.astype(np.int64) % 2).T

@@ -1,0 +1,68 @@
+{
+ "runs": [
+  {
+   "n_mechanisms": 2232,
+   "n_detectors": 252,
+   "n_observables": 12,
+   "seconds": 900.2096855000127,
+   "time_limit": 900.0,
+   "status": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+   "d_upper": 5,
+   "witness": [
+    1115,
+    1118,
+    1128,
+    1136,
+    1255
+   ],
+   "witness_observables": [
+    0,
+    1,
+    9
+   ],
+   "d_lower": 3,
+   "certified": false,
+   "code": "BB72",
+   "schedule": "interleaved",
+   "cnot_layers": 7,
+   "rounds": 6,
+   "basis": "Z",
+   "distance_code": null,
+   "wall_seconds": 900.214322600048
+  },
+  {
+   "n_mechanisms": 2232,
+   "n_detectors": 252,
+   "n_observables": 12,
+   "seconds": 232.99858210003003,
+   "time_limit": 900.0,
+   "status": "Optimization terminated successfully. (HiGHS Status 7: Optimal)",
+   "d_upper": 4,
+   "witness": [
+    1085,
+    1095,
+    1223,
+    1243
+   ],
+   "witness_observables": [
+    0,
+    1,
+    2,
+    3,
+    6,
+    8,
+    9,
+    10
+   ],
+   "d_lower": 4,
+   "certified": true,
+   "code": "BB72",
+   "schedule": "sequential",
+   "cnot_layers": 12,
+   "rounds": 6,
+   "basis": "Z",
+   "distance_code": null,
+   "wall_seconds": 232.9999924999429
+  }
+ ]
+}

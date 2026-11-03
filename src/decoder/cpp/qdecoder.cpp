@@ -298,3 +298,67 @@ QD_API int qd_channel_llr(void* h, int16_t* out) {
     std::memcpy(out, d.ch.data(), sizeof(int16_t) * d.n);
     return d.n;
 }
+
+// ---------------------------------------------------------------- fused sliding-window loop
+// The whole (W, F) loop in one call: for every window, gather the sub-syndrome, run BP (timed), run OSD-CS only on
+// the lanes BP left unsatisfied (timed), commit the first F rounds and propagate the committed mechanisms into the
+// detectors of later rounds (timed): sigma_{k+1} = sigma_k XOR H[:, C_k] e_{C_k}.  Results are identical to the
+// Python loop; only the per-window Python/cffi overhead is gone and the three costs are measured separately.
+struct QdWin {
+    void* dec;                 // decoder of this window's sub-problem
+    int nrows; const int* rows;        // detector ids inside the window
+    int ngroups; const int* groups;    // decoder columns committed by this window
+    const int* gcols;                  // global mechanism id of each committed column
+    int last;
+};
+
+QD_API void qd_window_decode(const QdWin* wins, int nwin, int B, int nDet, int nMech,
+                             const int* hc_colptr, const int* hc_rowidx,
+                             uint8_t* syn, uint8_t* err, uint8_t* failed, uint8_t* shot_status,
+                             uint64_t* bp_ns, uint64_t* post_ns, uint64_t* prop_ns, int64_t* counts) {
+    for (int k = 0; k < nwin; k++) {
+        const QdWin& w = wins[k];
+        Dec& d = *(Dec*)w.dec;
+        const int m = d.m, n = d.n;
+        // scratch buffers are reused across windows and calls: allocating here costs microseconds per call
+        static thread_local std::vector<uint8_t> sub, out, st;
+        static thread_local std::vector<int> iters;
+        static thread_local std::vector<int16_t> post;
+        if (sub.size() < (size_t)B * m) sub.resize((size_t)B * m);
+        if (out.size() < (size_t)B * n) out.resize((size_t)B * n);
+        if (st.size() < (size_t)B) { st.resize(B); iters.resize(B); }
+        if (post.size() < (size_t)n) post.resize(n);
+        for (int b = 0; b < B; b++)
+            for (int r = 0; r < m; r++) sub[(size_t)b * m + r] = syn[(size_t)b * nDet + w.rows[r]];
+        uint64_t tbp = 0, tpost = 0;
+        for (int s0 = 0; s0 < B; s0 += L) {
+            int cnt = std::min(L, B - s0);
+            uint64_t t0 = now_ns();
+            decode_chunk(d, cnt, sub.data() + (size_t)s0 * m, out.data() + (size_t)s0 * n, iters.data() + s0, st.data() + s0, false);
+            uint64_t t1 = now_ns();
+            for (int l = 0; l < cnt; l++) {
+                if (st[s0 + l] != 1) continue;                    // BP did not converge: run OSD-CS on this lane
+                for (int j = 0; j < n; j++) post[j] = d.tot[j][l];
+                st[s0 + l] = osd(d, sub.data() + (size_t)(s0 + l) * m, post.data(), out.data() + (size_t)(s0 + l) * n) ? 2 : 3;
+            }
+            uint64_t t2 = now_ns();
+            tbp += t1 - t0; tpost += t2 - t1;
+        }
+        uint64_t t3 = now_ns();
+        for (int b = 0; b < B; b++) {
+            uint8_t s = st[b];
+            counts[s < 4 ? s : 3]++;
+            if (s > shot_status[b]) shot_status[b] = s;
+            if (s == 3) { failed[b] = 1; continue; }              // an unsatisfied window commits nothing
+            for (int g = 0; g < w.ngroups; g++) {
+                if (!out[(size_t)b * n + w.groups[g]]) continue;
+                int col = w.gcols[g];
+                err[(size_t)b * nMech + col] ^= 1;
+                if (!w.last)
+                    for (int e = hc_colptr[col]; e < hc_colptr[col + 1]; e++) syn[(size_t)b * nDet + hc_rowidx[e]] ^= 1;
+            }
+        }
+        uint64_t t4 = now_ns();
+        bp_ns[k] = tbp; post_ns[k] = tpost; prop_ns[k] = t4 - t3;
+    }
+}
