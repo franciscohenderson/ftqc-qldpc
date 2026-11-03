@@ -478,6 +478,87 @@ The contrast between Table 6 ($268\text{--}618\text{ ns}$ P50 for the amortized 
 
 ---
 
+<!-- HW-BEGIN -->
+## 9A. Circuit Distance, Zero-Cost Logical Gates, a Fused Window Loop and an Executable RTL
+
+This section collects four measurements made after the main study; each is reproducible from the scripts named in it.
+
+### 9A.1 Circuit-Level Distance by Mixed-Integer Programming
+
+The circuit-level distance $d_\mathrm{circ}$ is the smallest number of mechanisms of the detector error model (DEM) that raise no detector and still flip a logical observable. We compute it with the same HiGHS machinery as the code distances (`src/algebra/circuit_distance.py`): minimise $\sum_j e_j$ subject to $H_\mathrm{dem} e \equiv 0$ and $O_\mathrm{dem} e \not\equiv 0 \pmod 2$, with integer slack variables for the parities. Mechanisms with identical symptoms are merged (this cannot change the minimum), undetectable mechanisms are kept, and every witness is re-checked over $\mathbb{F}_2$. The formulation is validated on a repetition code and a rotated surface code of known distance (`tests/test_circuit_distance.py`). Memory experiments use 6 rounds, $Z$ basis and uniform noise $p = 10^{-3}$.
+
+| code | CNOT layers | max weight asked | $d_\mathrm{circ}$ lower | $d_\mathrm{circ}$ upper | certified | MILP seconds | time limit (s) |
+|---|---|---|---|---|---|---|---|
+| BB108 | 12 | - | 2 | 14 | no | 300 | 300 |
+| BB108 | 7 | - | 2 | 132 | no | 300 | 300 |
+| BB144 | 12 | - | 2 | 32 | no | 300 | 300 |
+| BB144 | 7 | - | 2 | 14 | no | 301 | 300 |
+| BB72 | 12 | - | 4 | 4 | yes | 233 | 900 |
+| BB72 | 7 | - | 3 | 5 | no | 900 | 900 |
+| BB72 | 7 | 4 | - | - | no | 1503 | 1500 |
+| BB90 | 12 | - | 2 | 9 | no | 300 | 300 |
+| BB90 | 7 | - | 2 | 12 | no | 300 | 300 |
+
+*Table 9A.1: Circuit-level distance bounds (from `results/circuit_distance*.json`).*
+
+For BB72 (code distance 6) the sequential 12-layer schedule has $d_\mathrm{circ} = 4$, **certified** by HiGHS in 233 s: hook-type faults propagating through the CNOT chains reduce the effective distance below the code distance. For the interleaved 7-layer schedule the solver could only bound $d_\mathrm{circ}$ in $[3, 5]$ within 900 s, with a verified undetected logical fault of weight 5.
+Asking only whether a fault of weight $\le 4$ exists did not terminate within 1500 s.
+This is a measurement of two schedules on one code and one noise model; it does not show that the interleaved schedule preserves or loses distance relative to the sequential one unless the bounds above separate. For BB90, BB108 and BB144 the time-limited bounds are wide (see the table) and carry no conclusion; with only 6 rounds the time-like distance also limits $d_\mathrm{circ}$ below the code distance of the larger codes.
+
+### 9A.2 Zero-Cost Logical Gates from Translation Automorphisms
+
+A bivariate bicycle code is invariant under the translations of its $\mathbb{Z}_\ell \times \mathbb{Z}_m$ torus acting identically on both qubit blocks. Each such permutation maps the stabiliser group onto itself and therefore acts on the $k$ logical qubits as a matrix $U \in GL(k, \mathbb{F}_2)$: a logical Clifford (CNOT-type) circuit obtained by relabelling qubits (`src/algebra/logical_gates.py`). We enumerate every translation, compute $U$ from the logical bases, and check three things with Stim: (i) the SWAP-network realisation of the permutation is exactly that permutation; (ii) all stabilisers keep a definite sign and each logical $\bar Z_i$ stays definite exactly when the support of row $i$ of $U^{-1}$ lies in the previously measured set (every entry of $U^{-1}$ is tested); (iii) inserted between syndrome rounds of the real depth-7 extraction circuit (`build_memory_experiment(..., data_perms=...)`), with detectors re-labelled to the check each one came from, the detector error model builds with `allow_gauge_detectors=False` and the noiseless circuit never fires a detector or flips an observable.
+
+| code | $[[n,k]]$ | translations | automorphisms | non-trivial | distinct $U$ | Stim predictions | mismatches | gates in depth-7 circuit | violations | gauge detectors |
+|---|---|---|---|---|---|---|---|---|---|---|
+| BB72 | [[72,12]] | 35 | 35 | 35 | 35 | 7560 | 0 | 35 | 0 | 0 |
+| BB90 | [[90,8]] | 44 | 44 | 40 | 8 | 896 | 0 | 44 | 0 | 0 |
+| BB108 | [[108,8]] | 53 | 53 | 48 | 8 | 896 | 0 | 53 | 0 | 0 |
+| BB144 | [[144,12]] | 71 | 71 | 70 | 35 | 7560 | 0 | 71 | 0 | 0 |
+
+*Table 9A.2: Translation gates (from `results/logical_gates.json`).*
+
+These are permutations of data qubits: they cost no physical gate when implemented by relabelling, and we did not model any noise on them. We did not study the fault tolerance of using them as logical gates, nor which of them generate useful logical operations.
+
+### 9A.3 The Sliding-Window Loop Inside the C++ Decoder
+
+The window iteration, sub-syndrome gathering, commit of the first $F$ rounds and propagation $\sigma_{k+1} = \sigma_k \oplus H[:, C_k]\,\hat e_{C_k}$ now run in one C++ call (`qd_window_decode`, `WindowDecoder.decode_batch_fused`), which also times BP, OSD-CS and propagation separately ("prop" includes gathering the window's sub-syndrome). Decisions are identical to the Python loop, shot by shot (`tests/test_window_fused.py`). Both loops decode the same Stim samples (seed 2026, $p = 2 \times 10^{-3}$, 6 rounds); wall times are the best of three runs.
+
+| code | $(W,F)$ | identical | Python $\mu$s/shot | fused $\mu$s/shot | reduction | BP $\mu$s | OSD $\mu$s | prop $\mu$s | one-shot step p50 Python / fused ($\mu$s) |
+|---|---|---|---|---|---|---|---|---|---|
+| BB72 | (3,1) | yes | 250 | 180 | 28 % | 15.8 | 20.2 | 0.6 | 27.7 / 28.9 |
+| BB72 | (4,2) | yes | 219 | 153 | 30 % | 22.9 | 35.5 | 1.1 | 39.0 / 46.6 |
+| BB144 | (3,1) | yes | 838 | 606 | 28 % | 34.4 | 94.1 | 1.4 | 88.0 / 90.5 |
+| BB144 | (4,2) | yes | 665 | 495 | 26 % | 49.7 | 152.2 | 2.1 | 138.7 / 149.8 |
+
+*Table 9A.3: Fused versus Python window loop (from `results/window_fused.json`; BP/OSD/prop are batch-amortised per-shot means over the non-final window steps).*
+
+Fusion removes interpreter and FFI overhead and raises sustained throughput; it does not speed up a single shot, whose step time is dominated by the same BP kernel. In batches, the OSD-CS time exceeds the BP time because it runs on the lanes where BP did not converge.
+
+### 9A.4 An Executable SystemVerilog Model of the BP Kernel
+
+`src/hardware/rtl_gen.py` emits synthesizable SystemVerilog-2012 for the `int16` normalised min-sum kernel of `qdecoder.cpp` on a given check matrix: saturating add/subtract, first and second minimum with strict-less-than tie-breaking, $\alpha = 0.75$ as $m - (m \gg 2)$, posterior clamp to $[-8000, +8000]$, and the stop test evaluated before every iteration. The schedule is fully parallel flooding: one cycle for all check nodes, one for all variable nodes, so a syndrome that converges after $k$ iterations takes $2k + 2$ cycles (one load, $2k$ iteration cycles, one final check). For the BB72 matrix $H_Z$ (36$\times$72, 216 edges) the module has 3390 lines (`exports/rtl/tars_bp_bb72_hz.sv`).
+
+There is no Verilog simulator or FPGA on the development machine. We therefore elaborated the generated file with Yosys (the WebAssembly build distributed on PyPI), translated it to C++ with CXXRTL, compiled it with the same `zig c++` toolchain and drove it clock edge by clock edge. On 1000 noisy syndromes (iid $X$ errors, $p = 0.04$, seed 2026; 953 converge and 47 reach the iteration limit) the RTL, an independent fixed-point model, and the production AVX2 kernel agree on every posterior LLR, hard decision, iteration count and convergence flag (RTL vs C++: all identical), and the cycle count equals $2k + 2$ on every vector.
+
+| quantity | value |
+|---|---|
+| vectors identical to the C++ kernel | 1000 of 1000 |
+| RTL cycles per syndrome, p50 / p95 / max | 6 / 42 / 62 |
+| iterations per syndrome, mean / max | 3.80 / 30 |
+| at a nominal 250 MHz, p50 / p95 / max | 0.024 / 0.168 / 0.248 $\mu$s |
+| at a nominal 400 MHz, p50 / p95 / max | 0.015 / 0.105 / 0.155 $\mu$s |
+| register bits (exact) | 4665 |
+| generic 2-input gates (upper bound) | 166895 |
+
+*Table 9A.4: RTL equivalence and cycle counts (from `results/rtl_bitexact.json`).*
+
+The 250 and 400 MHz rows only divide RTL cycles by an assumed clock. **No FPGA or ASIC flow was run, so no achievable clock frequency, LUT count, power or timing is claimed.** The gate count comes from a per-block generic synthesis (one check-node and one variable-node block per distinct degree, multiplied by the instance count) because ABC and LUT mapping do not run in the WebAssembly Yosys; it is an unoptimised upper bound. The scope is BP on the single-round code-capacity matrix, not the circuit-level windowed decoder with OSD. The generated self-checking testbench and the `.mem` vectors are provided for any external simulator but were not executed here.
+
+<!-- HW-END -->
+
+---
+
 ## 10. Limitations
 
 In accordance with strict empirical reporting standards, we state the limitations of this work explicitly:
@@ -486,7 +567,7 @@ In accordance with strict empirical reporting standards, we state the limitation
 3. **BB288 Distance Not Certified and Not Swept:** Within the $600.6\text{ s}$ MILP budget, HiGHS established only the bounds $4 \le d_X, d_Z \le 18$ for BB288 ($[[288, 12, \le 18]]$); the value $d = 18$ is the published figure from Bravyi et al. [3] and is not independently certified here. BB288 was also excluded from the Monte Carlo threshold sweeps due to single-machine compute budget constraints.
 4. **Modest GNN Improvement and Code-Capacity Scope:** The `int8` `TannerGNN` second-tier fallback was trained and evaluated only on the code-capacity $H_Z$ graph of BB72 at $p = 0.06$ (BP10), where it reduced logical failure rates by $1.00$ percentage point ($23.65\% \to 22.65\%$, 24 of 2000 shots resolved). It has not been trained or evaluated on multi-round circuit-level DEM graphs.
 5. **Simulated Uniform Depolarizing Noise and 6-Round Horizon:** Thresholds are estimated from 6-round memory experiments (`rounds = 6`, rather than $d$ rounds per code) with up to $30\,000$ shots per point under idealized uniform depolarizing noise. Moreover, because BB90 and BB108 share distance $d = 10$, `estimate_threshold` averages $P_L(p)$ by unique distance $d \in \{6, 10, 12\}$ and reports a single median crossing value. Finally, `p_logical_per_round` assumes independent per-round failure semantics and is used only as a plotting convenience scale.
-6. **Circuit-Level (Effective) Distance Not Analyzed:** The reported distances are those of the codes. We did not compute the circuit-level distance of either schedule (for example, how hook-type ancilla faults reduce it), and the depth-7 schedule was validated only for stabilizer commutation, detector determinism and the measured logical error rates, not for fault-distance preservation.
+6. **Circuit-Level (Effective) Distance Only Partly Resolved:** Section 9A.1 computes it for BB72 with 6 rounds, one noise model and the $Z$ basis only: $d_\mathrm{circ} = 4$ (certified) for the sequential schedule, and bounds $[3, 5]$ for the interleaved one. The $X$ basis, longer horizons and the larger codes are not resolved within the solver time limits, so whether the depth-7 schedule preserves the circuit distance of the larger codes is **not established**.
 7. **Few Distinct Distances and Finite Shots:** The threshold crossing rests on three distinct distances (6, 10, 12) with at most $30\,000$ shots per point and, near $p = 2 \times 10^{-3}$, as few as $8$ observed failures for BB144; the quoted ratios (for instance $65.4\times$) carry large statistical uncertainty.
 8. **Sliding-Window Study Scope:** Three window configurations $(2,1)$, $(3,1)$, $(4,2)$ were measured, on two codes (BB72, BB144), two physical error rates ($2 \times 10^{-3}$ and $3 \times 10^{-3}$) and 6 rounds, with 20 000 to 30 000 shots at the lower rate and 10 000 at the higher one. The windows are orchestrated in Python around the C++ kernel (no fused loop, no parallel windows), BP and OSD times inside a window step are not separated, the timings are single-machine, and the BB144 failure counts at $p = 2 \times 10^{-3}$ (11 to 21) are too small to resolve the accuracy cost there. Windows much shorter than the code distance lose accuracy; larger $W$ was not explored. The batch-amortized latencies divide the time of a 16-shot chunk by 16 and therefore include the scalar OSD of any lane in the chunk (the same convention as Tables 6 and 7); single-shot values are the per-shot latency.
 9. **No Physical QPU Execution:** The OpenQASM 3.0 output with `extern decode_x` and `extern decode_z` real-time feedback calls is verified by parsing against the reference `openqasm3` AST parser, not executed on physical quantum hardware.

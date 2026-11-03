@@ -21,7 +21,7 @@ def _distance() -> list[str]:
            "|---|---|---|---|---|---|---|---|---|"]
     runs = (_load("circuit_distance.json") or {"runs": []})["runs"] + (_load("circuit_distance_decision.json") or {"runs": []})["runs"]
     for r in sorted(runs, key=lambda r: (r["code"], -r["cnot_layers"], r.get("max_weight") or 0)):
-        out.append(f"| {r['code']} | {r['cnot_layers']} | {r['rounds']} | {r.get('max_weight') or '-'} | {r.get('d_lower')} | {r.get('d_upper')} | "
+        out.append(f"| {r['code']} | {r['cnot_layers']} | {r['rounds']} | {r.get('max_weight') or '-'} | {r.get('d_lower') or '-'} | {r.get('d_upper') or '-'} | "
                    f"{r.get('certified')} | {r['seconds']:.0f} | {r.get('time_limit')} |")
     return out + [""]
 

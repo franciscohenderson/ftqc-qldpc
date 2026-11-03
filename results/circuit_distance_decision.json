@@ -1,0 +1,23 @@
+{
+ "runs": [
+  {
+   "max_weight": 4,
+   "n_mechanisms": 2232,
+   "n_detectors": 252,
+   "n_observables": 12,
+   "seconds": 1502.543493400095,
+   "time_limit": 1500.0,
+   "status": "Time limit reached. (HiGHS Status 13: model_status is Time limit reached; primal_status is None)",
+   "d_upper": null,
+   "d_lower": null,
+   "certified": false,
+   "code": "BB72",
+   "schedule": "interleaved",
+   "cnot_layers": 7,
+   "rounds": 6,
+   "basis": "Z",
+   "distance_code": 6,
+   "wall_seconds": 1502.5538177000126
+  }
+ ]
+}
