@@ -1,0 +1,9 @@
+FTQC qLDPC
+Copyright 2026 Francisco
+
+This product includes software developed by Francisco and licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party components keep their own licences:
+  - ui/vendor/motion.js: Motion (see ui/vendor/LICENSE-motion.md)
+  - ui/fonts/: Bricolage Grotesque and DM Mono, SIL Open Font License 1.1 (see ui/fonts/OFL.txt)
+  - scripts/pdf (build time only, not distributed): KaTeX (MIT), playwright-core (Apache-2.0)

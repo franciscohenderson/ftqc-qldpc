@@ -6,6 +6,7 @@ Exact code distances, a depth-7 interleaved CNOT schedule, a C++20 AVX2 SIMD BP 
 <img alt="python" src="https://img.shields.io/badge/python-3.12%2B-3776ab">
 <img alt="C++20" src="https://img.shields.io/badge/C%2B%2B-20%20%C2%B7%20AVX2%20SIMD-00599c">
 <img alt="tests" src="https://img.shields.io/badge/tests-62%20passing-2a7f62">
+<img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue">
 <img alt="status" src="https://img.shields.io/badge/status-research%20prototype-a3162d">
 <img alt="paper" src="https://img.shields.io/badge/whitepaper-PDF%2C%2016%20pages-16204a">
 </p>
@@ -67,7 +68,11 @@ flowchart LR
 * Sub-microsecond latency is the BP kernel only (amortized, per-round matrix). Full circuit-level BP + OSD is hundreds of microseconds to milliseconds.
 * The sliding-window decoder is orchestrated in Python around the C++ kernel and was measured with three configurations on BB72 and BB144; windows much shorter than the code distance lose accuracy (BB144 at p = 3e-3: about 1.9x the full-horizon error rate for W = 3).
 * One machine (AVX2, no AVX-512), 6 syndrome rounds, uniform depolarizing noise; BB288 distance is not certified; no hardware-in-the-loop run. The commercial and outreach documents are drafts: pricing and market statements are hypotheses.
-* License: **not chosen yet** - add a `LICENSE` file before publishing the repository.
+
+
+## License
+
+Copyright 2026 Francisco. Licensed under the [Apache License, Version 2.0](LICENSE); see also [NOTICE](NOTICE) for the third-party components bundled in `ui/` (Motion, Bricolage Grotesque, DM Mono) and used at build time only (KaTeX, playwright-core).
 
 ---
 

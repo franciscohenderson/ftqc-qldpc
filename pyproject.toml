@@ -3,6 +3,9 @@ name = "ftqc-qldpc"
 version = "0.1.0"
 description = "FTQC with generalized qLDPC codes: algebra, Stim/OpenQASM3 circuits, low-latency BP-OSD/GNN decoding, Monte Carlo benchmarks"
 requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Francisco" }]
 dependencies = [
   "numpy>=2.0", "scipy>=1.13", "networkx>=3.3", "stim>=1.15", "pandas>=2.2", "pyarrow>=16", "h5py>=3.11",
   "matplotlib>=3.9", "seaborn>=0.13", "cffi>=1.16", "openqasm3[parser]>=1.0", "pytest>=8",
