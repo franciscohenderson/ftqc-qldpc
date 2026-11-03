@@ -15,7 +15,7 @@ Exact code distances, a depth-7 interleaved CNOT schedule, a C++20 AVX2 SIMD BP 
 
 <p align="center"><img src="docs/assets/el_telar_live_demo.gif" alt="Animated demo: live decoding, the 7 layers of the interleaved schedule, full-horizon and sliding-window modes" width="100%"></p>
 
-> **What this is, in one honest paragraph.** A reproducible research codebase: it certifies code distances by MILP, compiles a 7-layer interleaved syndrome-extraction schedule (12 layers if scheduled sequentially), simulates circuit-level memory experiments with Stim, and decodes them with a fixed-point `int16` SIMD min-sum BP kernel plus bit-packed OSD-CS. **Only the BP kernel is sub-microsecond** (0.26-0.62 us per shot, amortized over a 16-shot SIMD pass, per-round matrix); full circuit-level decoding with OSD costs hundreds of microseconds, and a sliding-window decoder lowers the wait after the last round by about 15x (BB72) and 6.6x (BB144) without reaching sub-microsecond. Everything below is measured on one AMD Ryzen 5 5600G; see [Limitations](#honest-limitations).
+> **What this is, in one honest paragraph.** A reproducible research codebase: it certifies code distances by MILP, compiles a 7-layer interleaved syndrome-extraction schedule (12 layers if scheduled sequentially), simulates circuit-level memory experiments with Stim, and decodes them with a fixed-point `int16` SIMD min-sum BP kernel plus bit-packed OSD-CS. **Only the BP kernel is sub-microsecond** (0.26-0.62 us per shot, amortized over a 16-shot SIMD pass, per-round matrix); full circuit-level decoding with OSD costs hundreds of microseconds, and a sliding-window decoder lowers the wait after the last round by about 15x (BB72) and 6.6x (BB144) without reaching sub-microsecond. Everything below is measured on one consumer desktop CPU; see [Limitations](#honest-limitations).
 
 | | | |
 |---|---|---|
@@ -82,7 +82,7 @@ Copyright 2026 Francisco. Licensed under the [Apache License, Version 2.0](LICEN
 
 End-to-end, tested framework: **code algebra → circuit synthesis (Stim, OpenQASM 3.0) → two-tier low-latency decoder (C++20 SIMD BP-OSD + INT8 GNN) → distributed Monte Carlo threshold benchmarks**.
 
-Everything reported below was produced by the code in this repo on one machine (AMD Ryzen 5 5600G, AVX2, Windows 11, Python 3.14, clang via `zig c++`). Numbers are measured, not projected; limitations are stated in [Honest limitations](#honest-limitations).
+Everything reported below was produced by the code in this repo on one machine (consumer desktop CPU, AVX2, Windows 11, Python 3.14, clang via `zig c++`). Numbers are measured, not projected; limitations are stated in [Honest limitations](#honest-limitations).
 
 ## Layout
 
@@ -178,7 +178,7 @@ Figures (PDF + SVG) in `figures/`: `logical_vs_p`, `logical_total_vs_p`, `thresh
 
 ### Decoder latency
 
-| Measurement (AMD Ryzen 5 5600G, AVX2, 16 shots per SIMD pass) | P50 | P95 | P99 |
+| Measurement (consumer desktop CPU, AVX2, 16 shots per SIMD pass) | P50 | P95 | P99 |
 |---|---|---|---|
 | **BP kernel**, code-capacity H_Z (36x72 for BB72, 72x144 for BB144), p = 1e-3..1e-2, amortized per shot over a 16-shot pass | 0.26-0.60 us | 0.27-0.69 us | 0.32-1.2 us |
 | BP kernel, same matrices, **one shot at a time** (timer resolution 100 ns) | 0.6-2.4 us | 1.2-4.4 us | 1.3-7.2 us |
